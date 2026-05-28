@@ -18,13 +18,54 @@ First, install the dependencies:
 pnpm install
 ```
 
-Then, run the development server:
+Start the database only:
 
 ```bash
-pnpm run dev
+pnpm docker:postgres
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser to see the web application.
+Then, run the API and frontend already connected:
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
+
+To run the full stack in Docker:
+
+```bash
+pnpm docker-compose:up
+```
+
+To stop the full stack:
+
+```bash
+pnpm docker-compose:down
+```
+
+Local ports:
+
+- Postgres: `localhost:5432`
+- API: `http://localhost:5086`
+- Swagger: `http://localhost:5086/swagger`
+- Web: `http://localhost:3001`
+
+Useful infrastructure commands:
+
+```bash
+pnpm docker:postgres
+pnpm docker-compose:up
+pnpm docker-compose:down
+pnpm docker-compose:reset
+```
+
+Environment files:
+
+- API: copy or edit `apps/api/.env.example` into `apps/api/.env`. Keep backend, database and CORS variables here.
+- Web: copy or edit `apps/web/.env.example` into `apps/web/.env`. Keep `WEB_PORT` and `VITE_API_BASE_URL` here.
+- `VITE_API_BASE_URL` must point to the API URL exposed to the browser.
+- If `pnpm dev` says port `5086` is already in use, stop the previous API process before starting it again.
 
 ## UI Customization
 
@@ -54,7 +95,7 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 
 ## Project Structure
 
-```
+```text
 transportadora-moura/
 ├── apps/
 │   ├── web/         # Frontend application (React + TanStack Router)
