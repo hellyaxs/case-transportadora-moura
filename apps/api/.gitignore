@@ -1,0 +1,8 @@
+[Bb]in/
+[Oo]bj/
+
+# Environment & local files
+.env
+.env*.local
+*.Development.json
+appsettings.Development.json

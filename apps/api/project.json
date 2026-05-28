@@ -1,0 +1,17 @@
+{
+  "name": "api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/api",
+  "tags": [],
+  "targets": {
+    "swagger": {
+      "executor": "@nx-dotnet/core:update-swagger",
+      "outputs": ["{workspaceRoot}/packages/generated/api-swagger/swagger.json"],
+      "options": {
+        "output": "packages/generated/api-swagger/swagger.json"
+      },
+      "dependsOn": ["build"]
+    }
+  }
+}
