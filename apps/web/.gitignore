@@ -53,6 +53,7 @@ next-env.d.ts
 
 # Other
 dev-dist
+routeTree.gen.ts
 
 .wrangler
 .dev.vars*

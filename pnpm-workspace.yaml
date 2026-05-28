@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - libs/generated/*
 allowBuilds:
   msw: true
   nx: true

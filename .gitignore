@@ -44,6 +44,14 @@ lerna-debug.log*
 coverage
 .nyc_output
 
+# Personal / IDE config
+.config/
+.cursor/
+.opencode/
+
+# Generated files
+*.gen.ts
+
 # Misc
 *.tgz
 .cache
