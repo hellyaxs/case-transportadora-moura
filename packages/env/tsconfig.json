@@ -1,0 +1,3 @@
+{
+  "extends": "@transportadora-moura/config/tsconfig.base.json"
+}

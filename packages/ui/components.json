@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-lyra",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@transportadora-moura/ui/components",
+    "utils": "@transportadora-moura/ui/lib/utils",
+    "hooks": "@transportadora-moura/ui/hooks",
+    "lib": "@transportadora-moura/ui/lib",
+    "ui": "@transportadora-moura/ui/components"
+  },
+  "menuColor": "default",
+  "menuAccent": "subtle",
+  "registries": {}
+}
