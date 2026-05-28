@@ -1,7 +1,7 @@
 {
   "name": "generated-api-types",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/generated/api-types/src",
+  "sourceRoot": "packages/generated/api-types/src",
   "projectType": "library",
   "tags": [],
   "targets": {

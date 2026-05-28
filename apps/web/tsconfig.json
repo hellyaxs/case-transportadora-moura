@@ -13,7 +13,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "generated-api-types": ["../../libs/generated/api-types/src/index.ts"],
+      "generated-api-types": ["../../packages/generated/api-types/src/index.ts"],
       "@transportadora-moura/ui/*": ["../../packages/ui/src/*"]
     }
   }

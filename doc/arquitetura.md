@@ -17,9 +17,9 @@ transportadora-moura/
     config/              # Configuracoes compartilhadas TypeScript
     env/                 # Validacao de variaveis de ambiente do frontend
     ui/                  # Componentes shadcn/ui compartilhados
-    generated/api-swagger/ # Swagger/OpenAPI gerado pela API
-  libs/
-    generated/api-types/ # Cliente/tipos TypeScript gerados do OpenAPI
+    generated/
+      api-swagger/       # Swagger/OpenAPI gerado pela API
+      api-types/         # Cliente/tipos TypeScript gerados do OpenAPI
   openspec/              # Propostas, designs, specs e tarefas do produto
 ```
 
@@ -35,7 +35,7 @@ transportadora-moura/
 
 `packages/generated/api-swagger` armazena o arquivo Swagger/OpenAPI gerado a partir da API.
 
-`libs/generated/api-types` contem tipos e APIs TypeScript gerados a partir do Swagger. Nao edite estes arquivos manualmente quando a mudanca deve vir do contrato da API.
+`packages/generated/api-types` contem tipos e APIs TypeScript gerados a partir do Swagger. Nao edite estes arquivos manualmente quando a mudanca deve vir do contrato da API.
 
 `openspec` guarda especificacoes de produto e infraestrutura. Use esse diretorio para entender intencao, escopo e requisitos antes de alterar fluxos relevantes.
 
@@ -193,12 +193,12 @@ Componentes visuais nao devem decidir regra de negocio. Eles podem esconder acoe
 
 ## Integracao Frontend e Backend
 
-O backend define o contrato publico via Swagger/OpenAPI. O frontend deve consumir os tipos gerados em `libs/generated/api-types` quando existirem.
+O backend define o contrato publico via Swagger/OpenAPI. O frontend deve consumir os tipos gerados em `packages/generated/api-types` quando existirem.
 
 Fluxo esperado quando mudar DTOs, endpoints ou enums publicos:
 
 ```text
-apps/api -> Swagger/OpenAPI -> libs/generated/api-types -> apps/web
+apps/api -> Swagger/OpenAPI -> packages/generated/api-types -> apps/web
 ```
 
 Comandos relacionados:

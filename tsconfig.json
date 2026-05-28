@@ -2,7 +2,7 @@
   "extends": "@transportadora-moura/config/tsconfig.base.json",
   "compilerOptions": {
     "paths": {
-      "generated-api-types": ["libs/generated/api-types/src/index.ts"]
+      "generated-api-types": ["packages/generated/api-types/src/index.ts"]
     }
   }
 }

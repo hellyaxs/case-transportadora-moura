@@ -12,7 +12,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY packages/env/package.json packages/env/package.json
 COPY packages/ui/package.json packages/ui/package.json
-COPY libs/generated/api-types/package.json libs/generated/api-types/package.json
+COPY packages/generated/api-types/package.json packages/generated/api-types/package.json
 
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
@@ -20,7 +20,7 @@ COPY apps/web apps/web
 COPY packages/config packages/config
 COPY packages/env packages/env
 COPY packages/ui packages/ui
-COPY libs/generated/api-types libs/generated/api-types
+COPY packages/generated/api-types packages/generated/api-types
 
 ARG VITE_API_BASE_URL=http://localhost:5086
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL

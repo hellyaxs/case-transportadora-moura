@@ -16,7 +16,7 @@
       },
       "dependsOn": ["swagger"],
       "inputs": ["{projectRoot}/swagger.json"],
-      "outputs": ["{workspaceRoot}/libs/generated/api-types"]
+      "outputs": ["{workspaceRoot}/packages/generated/api-types"]
     }
   },
   "implicitDependencies": ["api"]

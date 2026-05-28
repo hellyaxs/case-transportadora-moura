@@ -131,7 +131,7 @@ importers:
         version: 17.4.2
       generated-api-types:
         specifier: workspace:*
-        version: link:../../libs/generated/api-types
+        version: link:../../packages/generated/api-types
       lucide-react:
         specifier: ^1.8.0
         version: 1.17.0(react@19.2.6)
@@ -185,8 +185,6 @@ importers:
         specifier: ^8.0.8
         version: 8.0.14(@types/node@22.19.19)(jiti@2.7.0)(yaml@2.9.0)
 
-  libs/generated/api-types: {}
-
   packages/config: {}
 
   packages/env:
@@ -207,6 +205,8 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+
+  packages/generated/api-types: {}
 
   packages/ui:
     dependencies:

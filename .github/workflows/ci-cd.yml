@@ -102,7 +102,7 @@ jobs:
             || contains_project "@transportadora-moura/config" \
             || contains_project "generated-api-types" \
             || contains_project "api-swagger" \
-            || matches_changed_file '^(apps/web/|packages/ui/|packages/env/|packages/config/|packages/generated/api-swagger/|libs/generated/api-types/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|nx\.json$|tsconfig\.json$|\.github/workflows/ci-cd\.yml$|\.dockerignore$)'; then
+            || matches_changed_file '^(apps/web/|packages/ui/|packages/env/|packages/config/|packages/generated/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|nx\.json$|tsconfig\.json$|\.github/workflows/ci-cd\.yml$|\.dockerignore$)'; then
             web_changed=true
           fi
 
