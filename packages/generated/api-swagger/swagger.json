@@ -1,0 +1,769 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Transportadora Moura - Gestão de Coletas",
+    "description": "API para cadastro, roteirização, ocorrências e acompanhamento de solicitações de coleta.",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/clientes": {
+      "get": {
+        "tags": ["Cadastros operacionais"],
+        "summary": "Lista clientes disponíveis para coletas",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OptionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/motoristas": {
+      "get": {
+        "tags": ["Cadastros operacionais"],
+        "summary": "Lista motoristas disponíveis para atribuição",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OptionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/veiculos": {
+      "get": {
+        "tags": ["Cadastros operacionais"],
+        "summary": "Lista veículos disponíveis para atribuição",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VeiculoOptionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coletas": {
+      "get": {
+        "tags": ["Coletas"],
+        "summary": "Lista coletas operacionais",
+        "description": "Lista coletas com filtros por status, cliente e período. Retorna também flags de prioridade e atraso para acompanhamento operacional.",
+        "operationId": "ListarColetas",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": ["Aberta", "EmColeta", "Coletada", "Cancelada"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "clienteId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dataInicial",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dataFinal",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ColetaResumoDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Coletas"],
+        "summary": "Cria uma solicitação de coleta",
+        "description": "Cria uma coleta com status Aberta, número único e prioridade normal quando a prioridade não for informada.",
+        "operationId": "CriarColeta",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarColetaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColetaDetalheDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coletas/{id}": {
+      "get": {
+        "tags": ["Coletas"],
+        "summary": "Obtém detalhe de uma coleta",
+        "description": "Retorna dados completos da coleta, atribuição operacional e ocorrências em ordem cronológica.",
+        "operationId": "ObterColeta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColetaDetalheDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coletas/{id}/atribuicao": {
+      "post": {
+        "tags": ["Coletas"],
+        "summary": "Atribui motorista e veículo",
+        "description": "Vincula motorista e veículo a uma coleta ativa. Coletas canceladas não aceitam atribuição.",
+        "operationId": "AtribuirColeta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtribuirColetaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColetaDetalheDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coletas/{id}/iniciar": {
+      "post": {
+        "tags": ["Coletas"],
+        "summary": "Marca uma coleta como EmColeta",
+        "description": "Avança uma coleta Aberta para EmColeta somente quando motorista e veículo já estão vinculados.",
+        "operationId": "IniciarColeta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColetaDetalheDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coletas/{id}/concluir": {
+      "post": {
+        "tags": ["Coletas"],
+        "summary": "Marca uma coleta como Coletada",
+        "description": "Conclui uma coleta em execução somente quando motorista e veículo estão vinculados.",
+        "operationId": "ConcluirColeta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColetaDetalheDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coletas/{id}/cancelar": {
+      "post": {
+        "tags": ["Coletas"],
+        "summary": "Cancela uma coleta",
+        "description": "Cancela uma coleta ativa. O status Cancelada é terminal e não retorna ao fluxo operacional.",
+        "operationId": "CancelarColeta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelarColetaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColetaDetalheDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coletas/{id}/ocorrencias": {
+      "post": {
+        "tags": ["Coletas"],
+        "summary": "Registra ocorrência operacional",
+        "description": "Registra ocorrência com descrição, data/hora do servidor e usuário responsável informado.",
+        "operationId": "RegistrarOcorrencia",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarOcorrenciaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColetaDetalheDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AtribuirColetaRequest": {
+        "type": "object",
+        "properties": {
+          "motoristaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "veiculoId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CancelarColetaRequest": {
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ColetaDetalheDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "type": "string",
+            "nullable": true
+          },
+          "clienteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clienteNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "remetenteNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "remetenteEndereco": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinatarioNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinatarioEndereco": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPrevistaRetirada": {
+            "type": "string",
+            "format": "date"
+          },
+          "prioridade": {
+            "enum": ["Normal", "Alta"],
+            "type": "string"
+          },
+          "observacoes": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "enum": ["Aberta", "EmColeta", "Coletada", "Cancelada"],
+            "type": "string"
+          },
+          "motoristaId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "motoristaNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "veiculoId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "veiculoPlaca": {
+            "type": "string",
+            "nullable": true
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "atribuidaEm": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "iniciadaEm": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "coletadaEm": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canceladaEm": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "motivoCancelamento": {
+            "type": "string",
+            "nullable": true
+          },
+          "atrasada": {
+            "type": "boolean"
+          },
+          "ocorrencias": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OcorrenciaDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ColetaResumoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "type": "string",
+            "nullable": true
+          },
+          "clienteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clienteNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "remetenteNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinatarioNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPrevistaRetirada": {
+            "type": "string",
+            "format": "date"
+          },
+          "prioridade": {
+            "enum": ["Normal", "Alta"],
+            "type": "string"
+          },
+          "status": {
+            "enum": ["Aberta", "EmColeta", "Coletada", "Cancelada"],
+            "type": "string"
+          },
+          "motoristaNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "veiculoPlaca": {
+            "type": "string",
+            "nullable": true
+          },
+          "atrasada": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CriarColetaRequest": {
+        "type": "object",
+        "properties": {
+          "clienteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "remetenteNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "remetenteEndereco": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinatarioNome": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinatarioEndereco": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataPrevistaRetirada": {
+            "type": "string",
+            "format": "date"
+          },
+          "prioridade": {
+            "enum": ["Normal", "Alta"],
+            "type": "string",
+            "nullable": true
+          },
+          "observacoes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OcorrenciaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "descricao": {
+            "type": "string",
+            "nullable": true
+          },
+          "usuarioResponsavel": {
+            "type": "string",
+            "nullable": true
+          },
+          "registradaEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
+      "RegistrarOcorrenciaRequest": {
+        "type": "object",
+        "properties": {
+          "descricao": {
+            "type": "string",
+            "nullable": true
+          },
+          "usuarioResponsavel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "VeiculoOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "placa": {
+            "type": "string",
+            "nullable": true
+          },
+          "descricao": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
