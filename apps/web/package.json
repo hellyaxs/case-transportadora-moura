@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-router": "^1.168.22",
+    "generated-api-types": "workspace:*",
     "@transportadora-moura/env": "workspace:*",
     "@transportadora-moura/ui": "workspace:*",
     "dotenv": "catalog:",

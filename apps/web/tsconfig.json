@@ -9,8 +9,11 @@
     "skipLibCheck": true,
     "types": ["vite/client"],
     "rootDirs": ["."],
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "generated-api-types": ["../../libs/generated/api-types/src/index.ts"],
       "@transportadora-moura/ui/*": ["../../packages/ui/src/*"]
     }
   }
