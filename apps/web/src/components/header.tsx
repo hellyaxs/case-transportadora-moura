@@ -1,9 +1,20 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+
+import { Button } from "@transportadora-moura/ui/components/button";
+
+import { useAuth } from "@/modules/auth/hooks/auth-provider";
 
 import { ModeToggle } from "./mode-toggle";
 
 export default function Header() {
-  const links = [{ to: "/", label: "Home" }] as const;
+  const navigate = useNavigate();
+  const { user, logout, loading } = useAuth();
+  const links = [{ to: "/", label: "Coletas" }] as const;
+
+  async function handleLogout() {
+    await logout();
+    await navigate({ to: "/login" });
+  }
 
   return (
     <div>
@@ -18,6 +29,14 @@ export default function Header() {
           })}
         </nav>
         <div className="flex items-center gap-2">
+          {!loading && user ? (
+            <>
+              <span className="text-sm text-muted-foreground">{user.name}</span>
+              <Button size="sm" variant="outline" onClick={() => void handleLogout()}>
+                Sair
+              </Button>
+            </>
+          ) : null}
           <ModeToggle />
         </div>
       </div>
