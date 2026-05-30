@@ -6,33 +6,33 @@ Definir os recursos de registro, rastreabilidade e consulta de ocorrências de c
 
 ## Requirements
 
-### Requirement: Registrar ocorrência operacional
-
-O sistema SHALL permitir registrar ocorrências operacionais vinculadas a uma solicitação de coleta.
-
-#### Scenario: Ocorrência registrada com dados válidos
-
-- **WHEN** um usuário informa descrição da ocorrência para uma coleta existente
-- **THEN** o sistema adiciona a ocorrência ao histórico da coleta
-
-#### Scenario: Ocorrência sem descrição
-
-- **WHEN** um usuário tenta registrar ocorrência sem descrição
-- **THEN** o sistema rejeita o registro
-
 ### Requirement: Rastreabilidade da ocorrência
 
-O sistema SHALL guardar data, hora e usuário responsável em toda ocorrência registrada.
+O sistema SHALL guardar data, hora e usuário responsável em toda ocorrência registrada, usando a identidade autenticada da sessão atual como origem do usuário responsável.
 
 #### Scenario: Ocorrência criada
 
-- **WHEN** uma ocorrência é registrada em uma coleta
-- **THEN** o sistema salva data, hora e identificação do usuário responsável
+- **WHEN** um usuário autenticado registra uma ocorrência em uma coleta
+- **THEN** o sistema salva data, hora e identificação do usuário autenticado como responsável
 
 #### Scenario: Usuário responsável ausente
 
-- **WHEN** a origem do usuário responsável não está disponível
-- **THEN** o sistema rejeita o registro ou exige identificação controlada do responsável
+- **WHEN** a requisição de ocorrência não possui sessão autenticada válida
+- **THEN** o sistema rejeita o registro antes de persistir a ocorrência
+
+### Requirement: Registrar ocorrência operacional
+
+O sistema SHALL permitir registrar ocorrências via `POST /api/collections/{id}/incidents` com payload `{ description }`, derivando o usuário responsável da sessão autenticada conforme regra vigente de autenticação.
+
+#### Scenario: Ocorrência registrada com dados válidos
+
+- **WHEN** um usuário informa `description` para uma coleta existente
+- **THEN** o sistema adiciona o incidente ao histórico da coleta
+
+#### Scenario: Ocorrência sem descrição
+
+- **WHEN** um usuário tenta registrar incidente sem `description`
+- **THEN** o sistema rejeita o registro
 
 ### Requirement: Consultar ocorrências da coleta
 

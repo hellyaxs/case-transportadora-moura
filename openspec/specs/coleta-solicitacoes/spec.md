@@ -8,12 +8,12 @@ Definir os recursos de criação, identificação, priorização e consulta de s
 
 ### Requirement: Criar solicitação de coleta
 
-O sistema SHALL permitir registrar uma solicitação de coleta com número único, cliente, remetente, destinatário, data prevista de retirada, prioridade e observações opcionais.
+O sistema SHALL permitir registrar uma solicitação de coleta com número único, cliente, remetente, destinatário, data prevista de retirada, prioridade e observações opcionais, expondo contrato HTTP em inglês (`POST /api/collections` com campos `customerId`, `senderName`, `recipientName`, `expectedPickupDate`, `priority`, `notes`).
 
 #### Scenario: Solicitação criada com dados válidos
 
 - **WHEN** um cliente ou atendente informa todos os dados obrigatórios da coleta
-- **THEN** o sistema cria a solicitação com status `Aberta` e número único de identificação
+- **THEN** o sistema cria a solicitação com status `Open` e número único de identificação
 
 #### Scenario: Dados obrigatórios ausentes
 
@@ -22,7 +22,7 @@ O sistema SHALL permitir registrar uma solicitação de coleta com número únic
 
 ### Requirement: Identificação única da coleta
 
-O sistema SHALL gerar e preservar um identificador único para cada solicitação de coleta.
+O sistema SHALL gerar e preservar um identificador único para cada solicitação de coleta, retornando campo `number` no contrato JSON.
 
 #### Scenario: Duas coletas criadas em sequência
 
@@ -31,17 +31,17 @@ O sistema SHALL gerar e preservar um identificador único para cada solicitaçã
 
 ### Requirement: Prioridade da coleta
 
-O sistema SHALL classificar cada solicitação com uma prioridade operacional explícita.
+O sistema SHALL classificar cada solicitação com prioridade operacional explícita usando enum JSON `Normal` ou `High`.
 
 #### Scenario: Prioridade não informada
 
 - **WHEN** uma solicitação é criada sem prioridade informada
-- **THEN** o sistema atribui a prioridade padrão definida pela regra de negócio
+- **THEN** o sistema atribui a prioridade padrão `Normal`
 
 #### Scenario: Prioridade alta informada
 
 - **WHEN** uma solicitação é criada com prioridade alta
-- **THEN** o sistema preserva essa prioridade para uso na listagem operacional
+- **THEN** o sistema persiste `High` no contrato técnico
 
 ### Requirement: Consulta de detalhe da coleta
 

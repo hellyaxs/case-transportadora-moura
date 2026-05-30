@@ -6,61 +6,37 @@ Definir o fluxo operacional de atribuição, execução, conclusão e cancelamen
 
 ## Requirements
 
-### Requirement: Atribuir motorista e veículo
+### Requirement: Transições válidas de status
 
-O sistema SHALL permitir atribuir motorista e veículo a uma solicitação de coleta ativa antes da execução operacional.
+O sistema SHALL controlar transições de status usando enum JSON em inglês: `Open`, `InProgress`, `Collected`, `Cancelled`.
 
-#### Scenario: Atribuição em coleta aberta
+#### Scenario: Coleta aberta recebe atribuição
 
-- **WHEN** uma coleta com status `Aberta` recebe motorista e veículo válidos
-- **THEN** o sistema grava a atribuição operacional da coleta
+- **WHEN** motorista e veículo são vinculados a uma coleta `Open`
+- **THEN** a coleta permanece apta a avançar para `InProgress` ou `Collected` conforme regras existentes
 
-#### Scenario: Atribuição em coleta cancelada
+#### Scenario: Coleta cancelada é terminal
 
-- **WHEN** um usuário tenta atribuir motorista ou veículo a uma coleta com status `Cancelada`
-- **THEN** o sistema rejeita a operação porque a coleta não pode voltar ao fluxo ativo
+- **WHEN** uma coleta entra em `Cancelled`
+- **THEN** ela não pode retornar para `InProgress` ou `Collected`
 
-### Requirement: Iniciar execução da coleta
+### Requirement: Conclusão exige motorista e veículo
 
-O sistema SHALL permitir avançar uma coleta ativa para `EmColeta` somente quando houver motorista e veículo atribuídos.
+O sistema SHALL impedir transição para `Collected` sem `driverId` e `vehicleId` vinculados.
 
-#### Scenario: Iniciar coleta com atribuição completa
+#### Scenario: Tentativa de concluir sem atribuição
 
-- **WHEN** uma coleta `Aberta` possui motorista e veículo atribuídos
-- **THEN** o sistema permite alterar o status para `EmColeta`
+- **WHEN** uma coleta sem motorista ou veículo tenta avançar para `Collected`
+- **THEN** o sistema rejeita a operação com erro de negócio
 
-#### Scenario: Iniciar coleta sem atribuição completa
+### Requirement: Endpoints de fluxo operacional em inglês
 
-- **WHEN** uma coleta não possui motorista ou veículo vinculado
-- **THEN** o sistema rejeita a alteração para `EmColeta`
+A API SHALL expor ações de fluxo em rotas inglesas: `POST /api/collections/{id}/assignment`, `/start`, `/complete`, `/cancel`.
 
-### Requirement: Concluir coleta
+#### Scenario: Atribuição via API
 
-O sistema SHALL permitir marcar uma coleta como `Coletada` somente quando houver motorista e veículo vinculados.
-
-#### Scenario: Concluir coleta em execução
-
-- **WHEN** uma coleta `EmColeta` possui motorista e veículo vinculados
-- **THEN** o sistema altera o status para `Coletada`
-
-#### Scenario: Concluir coleta sem motorista ou veículo
-
-- **WHEN** um usuário tenta marcar uma coleta como `Coletada` sem motorista ou veículo vinculado
-- **THEN** o sistema rejeita a conclusão
-
-### Requirement: Cancelamento terminal
-
-O sistema SHALL tratar `Cancelada` como status terminal, sem retorno para `Aberta`, `EmColeta` ou `Coletada`.
-
-#### Scenario: Cancelar coleta ativa
-
-- **WHEN** uma coleta com status `Aberta` ou `EmColeta` é cancelada
-- **THEN** o sistema altera o status para `Cancelada` e mantém o registro da coleta
-
-#### Scenario: Reativar coleta cancelada
-
-- **WHEN** um usuário tenta alterar uma coleta `Cancelada` para `EmColeta` ou `Coletada`
-- **THEN** o sistema rejeita a transição
+- **WHEN** o cliente chama `POST /api/collections/{id}/assignment` com `driverId` e `vehicleId`
+- **THEN** a coleta é atualizada conforme regra de atribuição existente
 
 ### Requirement: Histórico mínimo de status
 

@@ -2,7 +2,7 @@
 
 Esta documentacao resume a arquitetura atual do projeto Transportadora Moura e deve ser usada pelo Cursor como fonte principal de contexto antes de propor mudancas estruturais, alterar contratos entre frontend e backend ou expandir regras de negocio.
 
-Para detalhes de negocio mais extensos, consulte tambem `README.md`, `📐 Regras de Desenvolvimento – Transport.md` e as propostas em `openspec/changes`.
+Para detalhes de negocio mais extensos, consulte tambem as propostas em `openspec/changes`.
 
 ## Visao Geral
 
@@ -71,31 +71,56 @@ dotnet test apps/api.Test/Api.Test.csproj
 
 ## Backend .NET
 
-A API segue uma Clean Architecture leve, organizada por contexto de dominio:
+A API segue uma Clean Architecture leve, organizada por **modulos de bounded context**, cada um com suas proprias camadas:
 
 ```text
 apps/api/src/
-  Domain/
-    Coletas/
-  Application/
-    Coletas/
-  Infrastructure/
-    Coletas/
-  Presentation/
-    Coletas/
+  Shared/
+    Domain/Exceptions/
+    Infrastructure/
+      Configuration/
+      Persistence/TransportadoraDbContext.cs
+  Modules/
+    Collections/
+      Domain/
+      Application/
+      Infrastructure/
+      Presentation/
+      CollectionsModule.cs
+    Auth/
+      Domain/
+      Application/
+      Infrastructure/
+      Presentation/
+      AuthModule.cs
+  Composition/
+    DependencyInjection.cs
+    EndpointRegistration.cs
+
+apps/api/__teste__/
+  Modules/
+    Collections/
+      Domain/
+      Application/
+    Auth/
+      Application/
 ```
+
+Cada modulo expoe `AddXModule` e `MapXModule`. O `Program.cs` atua apenas como composition root via `AddApiModules()` e `MapApiModules()`.
+
+Testes unitarios ficam organizados por modulo em `apps/api/__teste__/Modules/<Modulo>/`, cobrindo dominio e casos de uso da Application com dependencias mockadas.
 
 ### Domain
 
 `Domain` e o nucleo do sistema. Ele deve concentrar entidades, enums, excecoes de negocio e invariantes.
 
-No contexto de coletas, `Coleta` e o agregado principal. As transicoes de status e validacoes importantes devem permanecer nessa entidade ou em objetos de dominio proximos.
+No contexto de coletas, `Collection` e o agregado principal. As transicoes de status e validacoes importantes devem permanecer nessa entidade ou em objetos de dominio proximos.
 
 Regras importantes:
 
 - Nao usar EF Core, HTTP, Swagger ou DTOs de API no dominio.
 - Evitar setters publicos que permitam burlar invariantes.
-- Expressar comportamento com metodos de negocio, como `AtribuirMotoristaVeiculo`, `MarcarEmColeta`, `MarcarComoColetada`, `Cancelar` e `RegistrarOcorrencia`.
+- Expressar comportamento com metodos de negocio em ingles, como `AssignDriverAndVehicle`, `MarkInProgress`, `MarkAsCollected`, `Cancel` e `RegisterIncident`.
 
 ### Application
 
@@ -114,13 +139,44 @@ Responsabilidades:
 
 Responsabilidades:
 
-- `TransportadoraDbContext`.
-- Migrations EF Core.
-- Repositorios concretos, como `EfColetaRepository`.
-- Seed e configuracoes de persistencia.
+- `TransportadoraDbContext` em `Shared/Infrastructure/Persistence`.
+- Migrations EF Core em `apps/api/Migrations`.
+- Configuracoes EF por modulo (ex.: `Modules/Collections/Infrastructure/Persistence/Configurations`).
+- Repositorios concretos, como `EfCollectionRepository`.
+- Seed e configuracoes de persistencia por modulo.
 - Implementacoes tecnicas, como relogio do sistema e gerador de numero.
 
 Infraestrutura implementa contratos definidos na aplicacao. Ela nao deve introduzir regra de negocio escondida.
+
+### Logging (Módulo de Observabilidade)
+
+O módulo `Modules/Logging` centraliza a configuração do Serilog como pipeline de logging do host.
+
+Estrutura:
+
+```text
+apps/api/src/Modules/Logging/
+  LoggingModule.cs        # AddLoggingModule / UseLoggingModule
+  LoggingOptions.cs       # Configuração tipada da seção Serilog
+```
+
+Pacotes NuGet adicionados:
+
+- `Serilog.AspNetCore` — integração com host ASP.NET Core e request logging.
+- `Serilog.Settings.Configuration` — bind da seção `Serilog` do `appsettings.json`.
+- `Serilog.Sinks.Console` — saída padrão em console.
+- `Serilog.Sinks.File` — arquivo rotativo opcional (desenvolvimento).
+- `Serilog.Enrichers.Environment` — enriquecimento com `MachineName`.
+- `Serilog.Enrichers.Thread` — enriquecimento com `ThreadId`.
+
+Convenções:
+
+- **Bootstrap**: `Log.Logger` é configurado antes de `WebApplication.CreateBuilder` com bootstrap logger; o host usa `UseSerilog()` para aplicar a configuração completa lida do `appsettings.json`.
+- **Request logging**: adicionado via `UseSerilogRequestLogging` com enriquecimento do `TraceIdentifier`. Requisições para `/swagger` e `/favicon.ico` são rebaixadas para `Verbose` para reduzir ruído.
+- **Configuração**: seção `Serilog` nos `appsettings*.json` com suporte a override por variáveis de ambiente `LOG_LEVEL` e `LOG_FILE_PATH`.
+- **Dados sensíveis**: proibido logar corpo de login, tokens JWT, `Authorization` header ou connection strings. Logs de negócio usam apenas IDs, nomes e status.
+- **ILogger\<T\>**: use cases continuam injetando `ILogger<T>` da Microsoft; Serilog recebe os eventos via bridge do `Microsoft.Extensions.Logging`.
+- **Middleware de exceção**: `ExceptionHandlingMiddleware` global captura exceções não tratadas, registra no Serilog e retorna resposta `problem+json` adequada.
 
 ### Presentation
 
@@ -128,8 +184,8 @@ Infraestrutura implementa contratos definidos na aplicacao. Ela nao deve introdu
 
 Responsabilidades:
 
-- Endpoints em `ColetasEndpoints`.
-- Requests publicos em `ColetaRequests`.
+- Endpoints em `CollectionsEndpoints`.
+- Requests publicos em `CollectionRequests`.
 - Mapeamento entre entrada HTTP e casos de uso.
 - Documentacao Swagger/OpenAPI.
 - Conversao de erros de negocio para respostas HTTP claras.
@@ -153,32 +209,76 @@ Use a linguagem do dominio de forma consistente:
 Fluxo base:
 
 ```text
-Aberta -> EmColeta -> Coletada
-Aberta -> Cancelada
-EmColeta -> Cancelada
+Open -> InProgress -> Collected
+Open -> Cancelled
+InProgress -> Cancelled
 ```
 
 Regras centrais:
 
-- Toda coleta nova inicia como `Aberta`.
-- `Cancelada` e terminal e deve permanecer registrada para historico.
-- `Coletada` tambem encerra o fluxo ativo.
-- Nao avancar para `EmColeta` sem motorista e veiculo.
-- Nao concluir como `Coletada` sem motorista e veiculo.
+- Toda coleta nova inicia como `Open`.
+- `Cancelled` e terminal e deve permanecer registrada para historico.
+- `Collected` tambem encerra o fluxo ativo.
+- Nao avancar para `InProgress` sem motorista e veiculo.
+- Nao concluir como `Collected` sem motorista e veiculo.
 - Ocorrencias devem preservar descricao, usuario responsavel e data/hora.
 - O backend e a fonte de verdade para validar transicoes; o frontend apenas aciona casos de uso.
+
+## Nomenclatura em ingles (codigo e contratos)
+
+Todo codigo executavel, banco e contratos HTTP usam ingles. Specs OpenSpec e esta documentacao podem permanecer em portugues.
+
+Glossario produto (PT) → tecnico (EN):
+
+| Produto (PT) | Codigo / API / DB (EN) |
+|--------------|-------------------------|
+| Coleta | `Collection` |
+| Cliente | `Customer` |
+| Motorista | `Driver` |
+| Veiculo | `Vehicle` |
+| Ocorrencia | `CollectionIncident` |
+| Aberta / Em coleta / Coletada / Cancelada | `Open` / `InProgress` / `Collected` / `Cancelled` |
+| Normal / Alta | `Normal` / `High` |
+
+Rotas REST publicas:
+
+| Recurso | Rota |
+|---------|------|
+| Coletas | `/api/collections` |
+| Clientes | `/api/customers` |
+| Motoristas | `/api/drivers` |
+| Veiculos | `/api/vehicles` |
+| Autenticacao | `/api/auth/login`, `/api/auth/logout`, `/api/auth/me` |
+
+Acoes de fluxo em coletas: `POST .../assignment`, `.../start`, `.../complete`, `.../cancel`, `.../incidents`.
+
+### Autenticacao JWT (cookie HttpOnly)
+
+- Modulo `Modules/Auth` com entidade `User`, seed demo (`operador@moura.local` / `Moura@2026`), JWT assinado e cookie `auth_token` (`HttpOnly`, `SameSite=Lax` em dev HTTP).
+- Endpoints operacionais de coletas e cadastros exigem `RequireAuthorization()`.
+- Ocorrencias usam `ICurrentUser` (Shared/Application); `RegisterIncidentRequest` aceita apenas `description`.
+- Frontend: `apps/web/src/modules/auth`, rota `/login`, `credentials: 'include'` nos services.
+- Variaveis: `JWT_SECRET` (obrigatoria), `Jwt__Issuer`, `Jwt__Audience`, `Jwt__ExpirationHours`, `Jwt__CookieName` em `apps/api/.env`.
+- CORS com `AllowCredentials()` e `FRONTEND_ORIGIN` explicito (ex.: `http://localhost:3001`).
+
+Consulte `.cursor/rules/english-codebase.mdc` para regras permanentes do Cursor.
 
 ## Frontend React
 
 O frontend deve ser organizado por funcionalidades de negocio.
 
 ```text
-apps/web/src/modules/coletas/
+apps/web/src/modules/collections/
   components/
   hooks/
   pages/
   services/
   types/
+
+apps/web/src/modules/auth/
+  hooks/auth-provider.tsx
+  pages/login-page.tsx
+  services/auth.service.ts
 ```
 
 Padroes:
