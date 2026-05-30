@@ -1,6 +1,7 @@
 using Api.Composition;
-using Api.Modules.Collections.Domain.Enums;
+using Api.Modules.Auth;
 using Api.Modules.Collections.Infrastructure.Persistence;
+using Api.Modules.Collections.Domain.Enums;
 using Api.Shared.Infrastructure.Configuration;
 using Api.Shared.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -71,8 +72,11 @@ using (var scope = app.Services.CreateScope())
     CollectionSeedData.Seed(dbContext);
 }
 
+app.SeedAuthData();
 app.UseMiddleware<Api.Shared.Presentation.ExceptionHandlingMiddleware>();
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseHttpsRedirection();
 app.MapApiModules();
 
