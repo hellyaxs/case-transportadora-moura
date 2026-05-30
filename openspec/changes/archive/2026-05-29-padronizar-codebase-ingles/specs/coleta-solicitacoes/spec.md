@@ -1,0 +1,38 @@
+## MODIFIED Requirements
+
+### Requirement: Criar solicitação de coleta
+
+O sistema SHALL permitir registrar uma solicitação de coleta com número único, cliente, remetente, destinatário, data prevista de retirada, prioridade e observações opcionais, expondo contrato HTTP em inglês (`POST /api/collections` com campos `customerId`, `senderName`, `recipientName`, `expectedPickupDate`, `priority`, `notes`).
+
+#### Scenario: Solicitação criada com dados válidos
+
+- **WHEN** um cliente ou atendente informa todos os dados obrigatórios da coleta
+- **THEN** o sistema cria a solicitação com status `Open` e número único de identificação
+
+#### Scenario: Dados obrigatórios ausentes
+
+- **WHEN** a criação da coleta não contém cliente, remetente, destinatário ou data prevista de retirada
+- **THEN** o sistema rejeita a solicitação e informa os campos obrigatórios pendentes
+
+### Requirement: Identificação única da coleta
+
+O sistema SHALL gerar e preservar um identificador único para cada solicitação de coleta, retornando campo `number` no contrato JSON.
+
+#### Scenario: Duas coletas criadas em sequência
+
+- **WHEN** duas solicitações de coleta são criadas
+- **THEN** cada solicitação recebe um número de identificação diferente
+
+### Requirement: Prioridade da coleta
+
+O sistema SHALL classificar cada solicitação com prioridade operacional explícita usando enum JSON `Normal` ou `High`.
+
+#### Scenario: Prioridade não informada
+
+- **WHEN** uma solicitação é criada sem prioridade informada
+- **THEN** o sistema atribui a prioridade padrão `Normal`
+
+#### Scenario: Prioridade alta informada
+
+- **WHEN** uma solicitação é criada com prioridade alta
+- **THEN** o sistema persiste `High` no contrato técnico
