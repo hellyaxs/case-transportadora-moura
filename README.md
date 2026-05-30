@@ -62,10 +62,17 @@ pnpm docker-compose:reset
 
 Environment files:
 
-- API: copy or edit `apps/api/.env.example` into `apps/api/.env`. Keep backend, database and CORS variables here.
+- API: copy or edit `apps/api/.env.example` into `apps/api/.env`. Keep backend, database, CORS and JWT variables here (`JWT_SECRET` is required).
 - Web: copy or edit `apps/web/.env.example` into `apps/web/.env`. Keep `WEB_PORT` and `VITE_API_BASE_URL` here.
 - `VITE_API_BASE_URL` must point to the API URL exposed to the browser.
 - If `pnpm dev` says port `5086` is already in use, stop the previous API process before starting it again.
+
+### Login operacional
+
+1. Acesse `http://localhost:3001/login`.
+2. Use o usuario seed: `operador@moura.local` / `Moura@2026`.
+3. A API grava o JWT em cookie `HttpOnly`; o frontend envia `credentials: 'include'` nas chamadas.
+4. Endpoints de coletas e cadastros retornam `401` sem sessao valida.
 
 ## UI Customization
 
