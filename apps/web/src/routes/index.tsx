@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { ColetasPage } from "@/modules/coletas/pages/coletas-page";
+import { requireAuthenticatedUser } from "@/modules/auth/guards/require-authenticated-user";
+import { CollectionsPage } from "@/modules/collections/pages/collections-page";
 
 export const Route = createFileRoute("/")({
-  component: HomeComponent,
+  beforeLoad: ({ location }) => requireAuthenticatedUser(location),
+  component: CollectionsPage,
 });
-
-function HomeComponent() {
-  return <ColetasPage />;
-}
