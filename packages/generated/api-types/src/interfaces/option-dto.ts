@@ -1,4 +1,4 @@
 export interface OptionDto {
   id: string;
-  nome?: string;
+  name?: string | null;
 }
