@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
@@ -7,9 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@transportadora-moura/
 import { Input } from "@transportadora-moura/ui/components/input";
 
 import { useAuth } from "../hooks/auth-provider";
+import { resolvePostLoginPath } from "../utils/safe-return-path";
+
+const loginRouteApi = getRouteApi("/login");
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { redirect: returnPath } = loginRouteApi.useSearch();
   const { login, setError, error } = useAuth();
   const [email, setEmail] = useState("operador@moura.local");
   const [password, setPassword] = useState("Moura@2026");
@@ -22,7 +26,7 @@ export function LoginPage() {
 
     try {
       await login(email, password);
-      await navigate({ to: "/" });
+      await navigate({ href: resolvePostLoginPath(returnPath) });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível autenticar.");
     } finally {

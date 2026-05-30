@@ -4,6 +4,8 @@ import { requireAuthenticatedUser } from "@/modules/auth/guards/require-authenti
 import { CollectionsPage } from "@/modules/collections/pages/collections-page";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: ({ location }) => requireAuthenticatedUser(location),
+  beforeLoad: async ({ location }) => {
+    await requireAuthenticatedUser(location);
+  },
   component: CollectionsPage,
 });
