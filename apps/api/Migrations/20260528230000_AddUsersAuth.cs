@@ -1,4 +1,6 @@
 using System;
+using Api.Shared.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Api.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(TransportadoraDbContext))]
+    [Migration("20260528230000_AddUsersAuth")]
     public partial class AddUsersAuth : Migration
     {
         /// <inheritdoc />
