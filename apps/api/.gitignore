@@ -6,3 +6,6 @@
 .env*.local
 *.Development.json
 appsettings.Development.json
+
+# Log files
+logs/

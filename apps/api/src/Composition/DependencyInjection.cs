@@ -1,5 +1,6 @@
 using Api.Modules.Auth;
 using Api.Modules.Collections;
+using Api.Modules.Logging;
 
 namespace Api.Composition;
 
@@ -9,6 +10,7 @@ public static class DependencyInjection
     {
         services.AddCollectionsModule(configuration);
         services.AddAuthModule(configuration);
+        services.AddLoggingModule(configuration);
 
         return services;
     }
