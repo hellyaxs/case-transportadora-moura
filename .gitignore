@@ -57,4 +57,5 @@ coverage
 .cache
 tmp
 temp
-case_backend.pdf
+*.pdf
+*.pptx
