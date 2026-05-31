@@ -7,9 +7,13 @@
     "packages/generated/*"
   ],
   "type": "module",
+  "engines": {
+    "node": "24.14.0"
+  },
   "scripts": {
     "dev": "pnpm docker:postgres && concurrently -k -n api,web -c cyan,green \"pnpm dev:api\" \"pnpm dev:web\"",
     "build": "nx run-many -t build",
+    "build:web": "nx run-many -t build --projects=generated-api-types,web",
     "check-types": "nx run-many -t check-types",
     "dev:web": "pnpm --filter web dev --host localhost",
     "dev:api": "dotnet watch --project apps/api/Api.csproj run --no-launch-profile",
