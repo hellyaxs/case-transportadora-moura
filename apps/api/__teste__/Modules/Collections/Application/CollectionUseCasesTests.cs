@@ -164,6 +164,44 @@ public class CollectionUseCasesTests
         Assert.Equal("authenticated_user_required", exception.Code);
     }
 
+    [Fact]
+    public async Task DeleteAsync_CollectedCollection_ShouldRemoveRecord()
+    {
+        var repository = new FakeCollectionRepository();
+        var customerId = Guid.NewGuid();
+        repository.Customers[customerId] = new Customer(customerId, "Test Customer");
+        var collection = CreateSeedCollection(customerId, CollectionStatus.Collected, CollectionPriority.Normal);
+        repository.Collections[collection.Id] = collection;
+        var useCases = CreateUseCases(repository, fixedNow: Now());
+
+        await useCases.DeleteAsync(collection.Id, CancellationToken.None);
+
+        Assert.Empty(repository.Collections);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_OpenCollection_ShouldFail()
+    {
+        var repository = new FakeCollectionRepository();
+        var collection = SeedCollection(repository);
+        var useCases = CreateUseCases(repository, fixedNow: Now());
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            useCases.DeleteAsync(collection.Id, CancellationToken.None));
+
+        Assert.Equal("collection_not_deletable", exception.Code);
+        Assert.Single(repository.Collections);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_MissingCollection_ShouldFail()
+    {
+        var useCases = CreateUseCases(new FakeCollectionRepository(), fixedNow: Now());
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            useCases.DeleteAsync(Guid.NewGuid(), CancellationToken.None));
+    }
+
     private static CollectionUseCases CreateUseCases(FakeCollectionRepository repository, DateTimeOffset fixedNow, ICurrentUser? currentUser = null)
     {
         return new CollectionUseCases(
@@ -207,6 +245,12 @@ public class CollectionUseCasesTests
         if (status == CollectionStatus.InProgress)
         {
             collection.MarkInProgress(Now());
+        }
+
+        if (status == CollectionStatus.Collected)
+        {
+            collection.MarkInProgress(Now());
+            collection.MarkAsCollected(Now());
         }
 
         return collection;
@@ -293,6 +337,12 @@ public class CollectionUseCasesTests
                 Vehicles.Values.Select(v => new VehicleOptionDto(v.Id, v.Plate, v.Description)).ToList());
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task DeleteAsync(Collection collection, CancellationToken cancellationToken)
+        {
+            Collections.Remove(collection.Id);
+            return Task.CompletedTask;
+        }
 
         private List<Collection> ApplyFilters(
             CollectionStatus? status,

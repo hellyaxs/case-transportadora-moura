@@ -6,6 +6,7 @@ import { Button } from "@transportadora-moura/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@transportadora-moura/ui/components/card";
 import { Input } from "@transportadora-moura/ui/components/input";
 
+import { CollectionActions } from "../components/collection-actions";
 import { CollectionPriorityBadge, CollectionStatusBadge } from "../components/collection-status-badge";
 import { useCollections } from "../hooks/use-collections";
 
@@ -43,6 +44,7 @@ export function CollectionsPage() {
     complete,
     cancel,
     registerIncident,
+    remove,
   } = useCollections();
   const [form, setForm] = useState<CreateCollectionRequest>({
     customerId: "",
@@ -94,6 +96,13 @@ export function CollectionsPage() {
     if (!description) return;
 
     await registerIncident(collectionId, description);
+  }
+
+  async function handleDelete(collectionId: string) {
+    const confirmed = window.confirm("Deseja excluir permanentemente esta coleta coletada?");
+    if (!confirmed) return;
+
+    await remove(collectionId);
   }
 
   const canSubmit =
@@ -303,20 +312,14 @@ export function CollectionsPage() {
                         Veículo: {collection.vehiclePlate ?? "não atribuído"}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => void start(collection.id)}>
-                        Iniciar
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => void complete(collection.id)}>
-                        Concluir
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => void handleIncident(collection.id)}>
-                        Ocorrência
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => void handleCancel(collection.id)}>
-                        Cancelar
-                      </Button>
-                    </div>
+                    <CollectionActions
+                      collection={collection}
+                      onStart={(id) => void start(id)}
+                      onComplete={(id) => void complete(id)}
+                      onIncident={(id) => void handleIncident(id)}
+                      onCancel={(id) => void handleCancel(id)}
+                      onDelete={(id) => void handleDelete(id)}
+                    />
                   </div>
                 </article>
               ))}

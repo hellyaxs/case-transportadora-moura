@@ -65,6 +65,14 @@ public static class CollectionsEndpoints
             .Produces<CollectionDetailsDto>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        group.MapDelete("/{id:guid}", DeleteCollectionAsync)
+            .WithName("DeleteCollection")
+            .WithSummary("Delete a collected collection")
+            .WithDescription("Physically removes a collection and its incidents when status is Collected.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         return group;
     }
 
@@ -172,6 +180,18 @@ public static class CollectionsEndpoints
 
         return await ExecuteAsync(async () =>
             Results.Ok(await useCases.RegisterIncidentAsync(id, request.Description, cancellationToken)));
+    }
+
+    private static async Task<IResult> DeleteCollectionAsync(
+        Guid id,
+        CollectionUseCases useCases,
+        CancellationToken cancellationToken)
+    {
+        return await ExecuteAsync(async () =>
+        {
+            await useCases.DeleteAsync(id, cancellationToken);
+            return Results.NoContent();
+        });
     }
 
     private static async Task<IResult> ExecuteAsync(Func<Task<IResult>> action)

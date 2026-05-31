@@ -112,6 +112,12 @@ public sealed class EfCollectionRepository(TransportadoraDbContext dbContext) : 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public Task DeleteAsync(Collection collection, CancellationToken cancellationToken)
+    {
+        dbContext.Collections.Remove(collection);
+        return Task.CompletedTask;
+    }
+
     private IQueryable<Collection> ApplyFilters(
         CollectionStatus? status,
         Guid? customerId,

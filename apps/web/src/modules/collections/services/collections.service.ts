@@ -42,6 +42,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function requestWithoutBody(path: string, init?: RequestInit): Promise<void> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+      ...init,
+    });
+  } catch {
+    throw new Error("Não foi possível comunicar com a API. Verifique se o backend está rodando e se VITE_API_BASE_URL está correto.");
+  }
+
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null);
+    throw new Error(problem?.detail ?? problem?.title ?? "Não foi possível concluir a operação.");
+  }
+}
+
 function toQueryString(params: CollectionListParams): string {
   const searchParams = new URLSearchParams();
 
@@ -88,6 +110,10 @@ export const collectionsService = {
       method: "POST",
       body: JSON.stringify(payload),
     });
+  },
+
+  remove(id: string) {
+    return requestWithoutBody(`/api/collections/${id}`, { method: "DELETE" });
   },
 
   listCustomers() {

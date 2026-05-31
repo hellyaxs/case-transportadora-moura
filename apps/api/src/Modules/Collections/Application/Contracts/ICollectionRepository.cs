@@ -31,4 +31,5 @@ public interface ICollectionRepository
     Task<IReadOnlyList<OptionDto>> ListDriversAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<VehicleOptionDto>> ListVehiclesAsync(CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
+    Task DeleteAsync(Collection collection, CancellationToken cancellationToken);
 }

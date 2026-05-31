@@ -108,6 +108,26 @@ public sealed class CollectionUseCases(
         return ToDetails(collection, clock.Today);
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var collection = await GetCollectionAsync(id, cancellationToken);
+
+        if (collection.Status != CollectionStatus.Collected)
+        {
+            throw new BusinessRuleException(
+                "Only collected collections can be deleted.",
+                "collection_not_deletable");
+        }
+
+        await repository.DeleteAsync(collection, cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Collection {Number} ({Id}) deleted after completion",
+            collection.Number,
+            collection.Id);
+    }
+
     public async Task<CollectionDetailsDto> MarkInProgressAsync(Guid id, CancellationToken cancellationToken)
     {
         var collection = await GetCollectionAsync(id, cancellationToken);

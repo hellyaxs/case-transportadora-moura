@@ -120,6 +120,7 @@ export function useCollections() {
     cancel: (id: string, reason?: string) => execute(() => collectionsService.cancel(id, { reason })),
     registerIncident: (id: string, description: string) =>
       execute(() => collectionsService.registerIncident(id, { description })),
+    remove: (id: string) => execute(() => collectionsService.remove(id)),
     reload: loadCollections,
   };
 }
