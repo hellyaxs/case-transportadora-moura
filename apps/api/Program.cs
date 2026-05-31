@@ -48,7 +48,7 @@ try
     var apiHttpPort = builder.Configuration["API_HTTP_PORT"];
     if (!string.IsNullOrWhiteSpace(apiHttpPort) && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
     {
-        builder.WebHost.UseUrls($"http://localhost:{apiHttpPort}");
+        builder.WebHost.UseUrls($"http://+:{apiHttpPort}");
     }
 
     builder.Services.AddEndpointsApiExplorer();
