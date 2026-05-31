@@ -1,10 +1,9 @@
 import type {
-  AssignCollectionRequest,
   CancelCollectionRequest,
   CollectionDetailsDto,
-  CollectionSummaryDto,
   CreateCollectionRequest,
   OptionDto,
+  PaginatedCollectionResponseDto,
   RegisterIncidentRequest,
   VehicleOptionDto,
 } from "generated-api-types";
@@ -13,6 +12,11 @@ import { env } from "@transportadora-moura/env/web";
 import type { CollectionFilters } from "../types/collection-filters";
 
 const API_BASE_URL = env.VITE_API_BASE_URL;
+
+export interface CollectionListParams extends CollectionFilters {
+  page?: number;
+  pageSize?: number;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
@@ -38,32 +42,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-function toQueryString(filters: CollectionFilters): string {
-  const params = new URLSearchParams();
+function toQueryString(params: CollectionListParams): string {
+  const searchParams = new URLSearchParams();
 
-  if (filters.status) params.set("status", filters.status);
-  if (filters.customerId) params.set("customerId", filters.customerId);
-  if (filters.startDate) params.set("startDate", filters.startDate);
-  if (filters.endDate) params.set("endDate", filters.endDate);
+  if (params.status) searchParams.set("status", params.status);
+  if (params.customerId) searchParams.set("customerId", params.customerId);
+  if (params.startDate) searchParams.set("startDate", params.startDate);
+  if (params.endDate) searchParams.set("endDate", params.endDate);
+  searchParams.set("page", String(params.page ?? 1));
+  searchParams.set("pageSize", String(params.pageSize ?? 10));
 
-  const query = params.toString();
+  const query = searchParams.toString();
   return query ? `?${query}` : "";
 }
 
 export const collectionsService = {
-  list(filters: CollectionFilters) {
-    return request<CollectionSummaryDto[]>(`/api/collections${toQueryString(filters)}`);
+  list(params: CollectionListParams) {
+    return request<PaginatedCollectionResponseDto>(`/api/collections${toQueryString(params)}`);
   },
 
   create(payload: CreateCollectionRequest) {
     return request<CollectionDetailsDto>("/api/collections", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  },
-
-  assign(id: string, payload: AssignCollectionRequest) {
-    return request<CollectionDetailsDto>(`/api/collections/${id}/assignment`, {
       method: "POST",
       body: JSON.stringify(payload),
     });

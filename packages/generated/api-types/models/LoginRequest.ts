@@ -12,8 +12,9 @@
 
 import { HttpFile } from '../http/http';
 
-export class RegisterIncidentRequest {
-    'description'?: string | null;
+export class LoginRequest {
+    'email'?: string | null;
+    'password'?: string | null;
 
     static readonly discriminator: string | undefined = undefined;
 
@@ -21,14 +22,20 @@ export class RegisterIncidentRequest {
 
     static readonly attributeTypeMap: Array<{name: string, baseName: string, type: string, format: string}> = [
         {
-            "name": "description",
-            "baseName": "description",
+            "name": "email",
+            "baseName": "email",
+            "type": "string",
+            "format": ""
+        },
+        {
+            "name": "password",
+            "baseName": "password",
             "type": "string",
             "format": ""
         }    ];
 
     static getAttributeTypeMap() {
-        return RegisterIncidentRequest.attributeTypeMap;
+        return LoginRequest.attributeTypeMap;
     }
 
     public constructor() {

@@ -2,11 +2,6 @@ export type CollectionPriority = "Normal" | "High";
 
 export type CollectionStatus = "Open" | "InProgress" | "Collected" | "Cancelled";
 
-export interface AssignCollectionRequest {
-  driverId: string;
-  vehicleId: string;
-}
-
 export interface CancelCollectionRequest {
   reason?: string | null;
 }
@@ -24,6 +19,22 @@ export interface CollectionSummaryDto {
   driverName?: string | null;
   vehiclePlate?: string | null;
   overdue: boolean;
+}
+
+export interface CollectionListMetricsDto {
+  openCount: number;
+  inProgressCount: number;
+  overdueCount: number;
+  highPriorityCount: number;
+}
+
+export interface PaginatedCollectionResponseDto {
+  items: CollectionSummaryDto[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  metrics: CollectionListMetricsDto;
 }
 
 export interface IncidentDto {
@@ -69,6 +80,8 @@ export interface CreateCollectionRequest {
   expectedPickupDate: string;
   priority?: CollectionPriority | null;
   notes?: string | null;
+  driverId: string;
+  vehicleId: string;
 }
 
 export interface RegisterIncidentRequest {
@@ -79,4 +92,9 @@ export interface VehicleOptionDto {
   id: string;
   plate?: string | null;
   description?: string | null;
+}
+
+export interface OptionDto {
+  id: string;
+  name?: string | null;
 }

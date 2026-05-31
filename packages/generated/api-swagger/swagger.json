@@ -8,13 +8,18 @@
   "paths": {
     "/api/auth/login": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Authenticate an operational user",
+        "description": "Validates credentials and stores the signed JWT in an HttpOnly cookie.",
         "operationId": "Login",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
             }
           },
           "required": true
@@ -24,52 +29,146 @@
             "description": "OK",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthenticatedUserDto" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUserDto"
+                }
               }
             }
           },
-          "401": { "description": "Unauthorized" }
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/auth/logout": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "End the current session",
+        "description": "Removes the authentication cookie from the client.",
         "operationId": "Logout",
         "responses": {
-          "204": { "description": "No Content" }
+          "204": {
+            "description": "No Content"
+          }
         }
       }
     },
     "/api/auth/me": {
       "get": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Get the authenticated user",
+        "description": "Returns the current session user when the HttpOnly cookie is valid.",
         "operationId": "GetCurrentUser",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthenticatedUserDto" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUserDto"
+                }
               }
             }
           },
-          "401": { "description": "Unauthorized" }
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/collections": {
       "get": {
-        "tags": ["Collections"],
+        "tags": [
+          "Collections"
+        ],
         "summary": "List operational collections",
+        "description": "Lists collections with filters by status, customer, and date range. Supports remote pagination and returns aggregated metrics.",
         "operationId": "ListCollections",
         "parameters": [
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["Open", "InProgress", "Collected", "Cancelled"] } },
-          { "name": "customerId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
-          { "name": "startDate", "in": "query", "schema": { "type": "string", "format": "date" } },
-          { "name": "endDate", "in": "query", "schema": { "type": "string", "format": "date" } }
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "Open",
+                "InProgress",
+                "Collected",
+                "Cancelled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -77,23 +176,26 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": { "$ref": "#/components/schemas/CollectionSummaryDto" }
+                  "$ref": "#/components/schemas/PaginatedCollectionResponseDto"
                 }
               }
             }
-          },
-          "401": { "description": "Unauthorized" }
+          }
         }
       },
       "post": {
-        "tags": ["Collections"],
+        "tags": [
+          "Collections"
+        ],
         "summary": "Create a collection request",
+        "description": "Creates a collection with Open status, a unique number, driver and vehicle assignment, and Normal priority when priority is not provided.",
         "operationId": "CreateCollection",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateCollectionRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateCollectionRequest"
+              }
             }
           },
           "required": true
@@ -103,26 +205,223 @@
             "description": "Created",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CollectionDetailsDto" }
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetailsDto"
+                }
               }
             }
           },
-          "401": { "description": "Unauthorized" }
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/collections/{id}/incidents": {
-      "post": {
-        "tags": ["Collections"],
-        "summary": "Register an operational incident",
-        "operationId": "RegisterIncident",
+    "/api/collections/{id}": {
+      "get": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Get collection details",
+        "description": "Returns full collection data, operational assignment, and incidents in chronological order.",
+        "operationId": "GetCollection",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Delete a collected collection",
+        "description": "Physically removes a collection and its incidents when status is Collected.",
+        "operationId": "DeleteCollection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections/{id}/start": {
+      "post": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Mark a collection as InProgress",
+        "description": "Advances an Open collection to InProgress only when a driver and vehicle are already assigned.",
+        "operationId": "StartCollection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections/{id}/complete": {
+      "post": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Mark a collection as Collected",
+        "description": "Completes an in-progress collection only when a driver and vehicle are assigned.",
+        "operationId": "CompleteCollection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Cancel a collection",
+        "description": "Cancels an active collection. Cancelled status is terminal and does not return to the operational flow.",
+        "operationId": "CancelCollection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterIncidentRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CancelCollectionRequest"
+              }
             }
           },
           "required": true
@@ -132,17 +431,83 @@
             "description": "OK",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CollectionDetailsDto" }
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetailsDto"
+                }
               }
             }
           },
-          "401": { "description": "Unauthorized" }
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections/{id}/incidents": {
+      "post": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Register an operational incident",
+        "description": "Registers an incident with description, server timestamp, and the authenticated responsible user.",
+        "operationId": "RegisterIncident",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIncidentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/customers": {
       "get": {
-        "tags": ["Operational catalog"],
+        "tags": [
+          "Operational catalog"
+        ],
         "summary": "List customers available for collections",
         "responses": {
           "200": {
@@ -151,86 +516,480 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/OptionDto" }
+                  "items": {
+                    "$ref": "#/components/schemas/OptionDto"
+                  }
                 }
               }
             }
-          },
-          "401": { "description": "Unauthorized" }
+          }
+        }
+      }
+    },
+    "/api/drivers": {
+      "get": {
+        "tags": [
+          "Operational catalog"
+        ],
+        "summary": "List drivers available for assignment",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OptionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles": {
+      "get": {
+        "tags": [
+          "Operational catalog"
+        ],
+        "summary": "List vehicles available for assignment",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VehicleOptionDto"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   "components": {
     "schemas": {
-      "LoginRequest": {
-        "type": "object",
-        "properties": {
-          "email": { "type": "string" },
-          "password": { "type": "string" }
-        },
-        "required": ["email", "password"]
-      },
       "AuthenticatedUserDto": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "email": { "type": "string" },
-          "name": { "type": "string" }
-        }
-      },
-      "RegisterIncidentRequest": {
-        "type": "object",
-        "properties": {
-          "description": { "type": "string" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
         },
-        "required": ["description"]
+        "additionalProperties": false
       },
-      "CollectionSummaryDto": {
+      "CancelCollectionRequest": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "number": { "type": "string" },
-          "customerId": { "type": "string", "format": "uuid" },
-          "customerName": { "type": "string" },
-          "status": { "type": "string" },
-          "priority": { "type": "string" },
-          "overdue": { "type": "boolean" }
-        }
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "CollectionDetailsDto": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "senderName": {
+            "type": "string",
+            "nullable": true
+          },
+          "senderAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "recipientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "recipientAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedPickupDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "priority": {
+            "enum": [
+              "Normal",
+              "High"
+            ],
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "enum": [
+              "Open",
+              "InProgress",
+              "Collected",
+              "Cancelled"
+            ],
+            "type": "string"
+          },
+          "driverId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "driverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "vehiclePlate": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "collectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "overdue": {
+            "type": "boolean"
+          },
           "incidents": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/IncidentDto" }
+            "items": {
+              "$ref": "#/components/schemas/IncidentDto"
+            },
+            "nullable": true
           }
-        }
+        },
+        "additionalProperties": false
       },
-      "IncidentDto": {
+      "CollectionListMetricsDto": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "description": { "type": "string" },
-          "responsibleUser": { "type": "string" },
-          "registeredAt": { "type": "string", "format": "date-time" }
-        }
+          "openCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inProgressCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overdueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highPriorityCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CollectionSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "senderName": {
+            "type": "string",
+            "nullable": true
+          },
+          "recipientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedPickupDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "priority": {
+            "enum": [
+              "Normal",
+              "High"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "Open",
+              "InProgress",
+              "Collected",
+              "Cancelled"
+            ],
+            "type": "string"
+          },
+          "driverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehiclePlate": {
+            "type": "string",
+            "nullable": true
+          },
+          "overdue": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
       "CreateCollectionRequest": {
         "type": "object",
         "properties": {
-          "customerId": { "type": "string", "format": "uuid" },
-          "senderName": { "type": "string" },
-          "expectedPickupDate": { "type": "string", "format": "date" }
-        }
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "senderName": {
+            "type": "string",
+            "nullable": true
+          },
+          "senderAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "recipientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "recipientAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedPickupDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "priority": {
+            "enum": [
+              "Normal",
+              "High"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "driverId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IncidentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsibleUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "OptionDto": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" }
-        }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaginatedCollectionResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionSummaryDto"
+            },
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/CollectionListMetricsDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "RegisterIncidentRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "VehicleOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plate": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       }
     }
   }

@@ -21,6 +21,8 @@ export class CreateCollectionRequest {
     'expectedPickupDate'?: string;
     'priority'?: CreateCollectionRequestPriorityEnum | null;
     'notes'?: string | null;
+    'driverId'?: string;
+    'vehicleId'?: string;
 
     static readonly discriminator: string | undefined = undefined;
 
@@ -74,6 +76,18 @@ export class CreateCollectionRequest {
             "baseName": "notes",
             "type": "string",
             "format": ""
+        },
+        {
+            "name": "driverId",
+            "baseName": "driverId",
+            "type": "string",
+            "format": "uuid"
+        },
+        {
+            "name": "vehicleId",
+            "baseName": "vehicleId",
+            "type": "string",
+            "format": "uuid"
         }    ];
 
     static getAttributeTypeMap() {

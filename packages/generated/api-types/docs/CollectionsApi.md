@@ -4,75 +4,15 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**assignCollection**](CollectionsApi.md#assignCollection) | **POST** /api/collections/{id}/assignment | Assign driver and vehicle
 [**cancelCollection**](CollectionsApi.md#cancelCollection) | **POST** /api/collections/{id}/cancel | Cancel a collection
 [**completeCollection**](CollectionsApi.md#completeCollection) | **POST** /api/collections/{id}/complete | Mark a collection as Collected
 [**createCollection**](CollectionsApi.md#createCollection) | **POST** /api/collections | Create a collection request
+[**deleteCollection**](CollectionsApi.md#deleteCollection) | **DELETE** /api/collections/{id} | Delete a collected collection
 [**getCollection**](CollectionsApi.md#getCollection) | **GET** /api/collections/{id} | Get collection details
 [**listCollections**](CollectionsApi.md#listCollections) | **GET** /api/collections | List operational collections
 [**registerIncident**](CollectionsApi.md#registerIncident) | **POST** /api/collections/{id}/incidents | Register an operational incident
 [**startCollection**](CollectionsApi.md#startCollection) | **POST** /api/collections/{id}/start | Mark a collection as InProgress
 
-
-# **assignCollection**
-> CollectionDetailsDto assignCollection(assignCollectionRequest)
-
-Links a driver and vehicle to an active collection. Cancelled collections cannot be assigned.
-
-### Example
-
-
-```typescript
-import { createConfiguration, CollectionsApi } from '';
-import type { CollectionsApiAssignCollectionRequest } from '';
-
-const configuration = createConfiguration();
-const apiInstance = new CollectionsApi(configuration);
-
-const request: CollectionsApiAssignCollectionRequest = {
-  
-  id: "id_example",
-  
-  assignCollectionRequest: {
-    driverId: "driverId_example",
-    vehicleId: "vehicleId_example",
-  },
-};
-
-const data = await apiInstance.assignCollection(request);
-console.log('API called successfully. Returned data:', data);
-```
-
-
-### Parameters
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **assignCollectionRequest** | **AssignCollectionRequest**|  |
- **id** | [**string**] |  | defaults to undefined
-
-
-### Return type
-
-**CollectionDetailsDto**
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: application/json
- - **Accept**: application/json, application/problem+json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | OK |  -  |
-**409** | Conflict |  -  |
-
-[[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
 
 # **cancelCollection**
 > CollectionDetailsDto cancelCollection(cancelCollectionRequest)
@@ -190,7 +130,7 @@ No authorization required
 # **createCollection**
 > CollectionDetailsDto createCollection(createCollectionRequest)
 
-Creates a collection with Open status, a unique number, and Normal priority when priority is not provided.
+Creates a collection with Open status, a unique number, driver and vehicle assignment, and Normal priority when priority is not provided.
 
 ### Example
 
@@ -213,6 +153,8 @@ const request: CollectionsApiCreateCollectionRequest = {
     expectedPickupDate: new Date('1970-01-01').toISOString().split('T')[0];,
     priority: "Normal",
     notes: "notes_example",
+    driverId: "driverId_example",
+    vehicleId: "vehicleId_example",
   },
 };
 
@@ -247,6 +189,61 @@ No authorization required
 |-------------|-------------|------------------|
 **201** | Created |  -  |
 **400** | Bad Request |  -  |
+
+[[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
+
+# **deleteCollection**
+> void deleteCollection()
+
+Physically removes a collection and its incidents when status is Collected.
+
+### Example
+
+
+```typescript
+import { createConfiguration, CollectionsApi } from '';
+import type { CollectionsApiDeleteCollectionRequest } from '';
+
+const configuration = createConfiguration();
+const apiInstance = new CollectionsApi(configuration);
+
+const request: CollectionsApiDeleteCollectionRequest = {
+  
+  id: "id_example",
+};
+
+const data = await apiInstance.deleteCollection(request);
+console.log('API called successfully. Returned data:', data);
+```
+
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | [**string**] |  | defaults to undefined
+
+
+### Return type
+
+**void**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/problem+json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**204** | No Content |  -  |
+**404** | Not Found |  -  |
+**409** | Conflict |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
 
@@ -305,9 +302,9 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
 
 # **listCollections**
-> Array<CollectionSummaryDto> listCollections()
+> PaginatedCollectionResponseDto listCollections()
 
-Lists collections with filters by status, customer, and date range. Returns priority and overdue flags for operational tracking.
+Lists collections with filters by status, customer, and date range. Supports remote pagination and returns aggregated metrics.
 
 ### Example
 
@@ -320,6 +317,10 @@ const configuration = createConfiguration();
 const apiInstance = new CollectionsApi(configuration);
 
 const request: CollectionsApiListCollectionsRequest = {
+  
+  page: 1,
+  
+  pageSize: 1,
   
   status: "Open",
   
@@ -339,6 +340,8 @@ console.log('API called successfully. Returned data:', data);
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **page** | [**number**] |  | defaults to undefined
+ **pageSize** | [**number**] |  | defaults to undefined
  **status** | [**&#39;Open&#39; | &#39;InProgress&#39; | &#39;Collected&#39; | &#39;Cancelled&#39;**]**Array<&#39;Open&#39; &#124; &#39;InProgress&#39; &#124; &#39;Collected&#39; &#124; &#39;Cancelled&#39;>** |  | (optional) defaults to undefined
  **customerId** | [**string**] |  | (optional) defaults to undefined
  **startDate** | [**string**] |  | (optional) defaults to undefined
@@ -347,7 +350,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**Array<CollectionSummaryDto>**
+**PaginatedCollectionResponseDto**
 
 ### Authorization
 
@@ -369,7 +372,7 @@ No authorization required
 # **registerIncident**
 > CollectionDetailsDto registerIncident(registerIncidentRequest)
 
-Registers an incident with description, server timestamp, and the informed responsible user.
+Registers an incident with description, server timestamp, and the authenticated responsible user.
 
 ### Example
 
@@ -387,7 +390,6 @@ const request: CollectionsApiRegisterIncidentRequest = {
   
   registerIncidentRequest: {
     description: "description_example",
-    responsibleUser: "responsibleUser_example",
   },
 };
 

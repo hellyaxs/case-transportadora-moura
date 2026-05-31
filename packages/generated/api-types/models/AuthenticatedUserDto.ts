@@ -12,9 +12,10 @@
 
 import { HttpFile } from '../http/http';
 
-export class AssignCollectionRequest {
-    'driverId'?: string;
-    'vehicleId'?: string;
+export class AuthenticatedUserDto {
+    'id'?: string;
+    'email'?: string | null;
+    'name'?: string | null;
 
     static readonly discriminator: string | undefined = undefined;
 
@@ -22,20 +23,26 @@ export class AssignCollectionRequest {
 
     static readonly attributeTypeMap: Array<{name: string, baseName: string, type: string, format: string}> = [
         {
-            "name": "driverId",
-            "baseName": "driverId",
+            "name": "id",
+            "baseName": "id",
             "type": "string",
             "format": "uuid"
         },
         {
-            "name": "vehicleId",
-            "baseName": "vehicleId",
+            "name": "email",
+            "baseName": "email",
             "type": "string",
-            "format": "uuid"
+            "format": ""
+        },
+        {
+            "name": "name",
+            "baseName": "name",
+            "type": "string",
+            "format": ""
         }    ];
 
     static getAttributeTypeMap() {
-        return AssignCollectionRequest.attributeTypeMap;
+        return AuthenticatedUserDto.attributeTypeMap;
     }
 
     public constructor() {

@@ -31,11 +31,14 @@ export function CollectionsPage() {
     vehicles,
     filters,
     setFilters,
+    page,
+    totalPages,
+    totalCount,
+    setPage,
     loading,
     error,
     metrics,
     create,
-    assign,
     start,
     complete,
     cancel,
@@ -50,6 +53,8 @@ export function CollectionsPage() {
     expectedPickupDate: todayIsoDate(),
     priority: "Normal",
     notes: "",
+    driverId: "",
+    vehicleId: "",
   });
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
@@ -58,6 +63,8 @@ export function CollectionsPage() {
     await create({
       ...form,
       customerId: form.customerId || customers[0]?.id || "",
+      driverId: form.driverId || drivers[0]?.id || "",
+      vehicleId: form.vehicleId || vehicles[0]?.id || "",
       notes: form.notes || null,
     });
 
@@ -70,16 +77,9 @@ export function CollectionsPage() {
       expectedPickupDate: todayIsoDate(),
       priority: "Normal",
       notes: "",
+      driverId: drivers[0]?.id ?? "",
+      vehicleId: vehicles[0]?.id ?? "",
     });
-  }
-
-  async function handleAssign(collectionId: string) {
-    const driverId = drivers[0]?.id;
-    const vehicleId = vehicles[0]?.id;
-
-    if (!driverId || !vehicleId) return;
-
-    await assign(collectionId, driverId, vehicleId);
   }
 
   async function handleCancel(collectionId: string) {
@@ -95,6 +95,13 @@ export function CollectionsPage() {
 
     await registerIncident(collectionId, description);
   }
+
+  const canSubmit =
+    customers.length > 0 &&
+    drivers.length > 0 &&
+    vehicles.length > 0 &&
+    Boolean(form.driverId || drivers[0]?.id) &&
+    Boolean(form.vehicleId || vehicles[0]?.id);
 
   return (
     <main className="container mx-auto grid max-w-7xl gap-4 px-4 py-6">
@@ -113,10 +120,10 @@ export function CollectionsPage() {
       {error ? <div className="border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
 
       <section className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="Abertas" value={metrics.abertas} />
-        <MetricCard label="Em coleta" value={metrics.emColeta} />
-        <MetricCard label="Atrasadas" value={metrics.atrasadas} />
-        <MetricCard label="Alta prioridade" value={metrics.altaPrioridade} />
+        <MetricCard label="Abertas" value={metrics.openCount} />
+        <MetricCard label="Em coleta" value={metrics.inProgressCount} />
+        <MetricCard label="Atrasadas" value={metrics.overdueCount} />
+        <MetricCard label="Alta prioridade" value={metrics.highPriorityCount} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[360px_1fr]">
@@ -135,6 +142,30 @@ export function CollectionsPage() {
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-8 border bg-background px-2 text-sm"
+                value={form.driverId || drivers[0]?.id || ""}
+                onChange={(event) => setForm((current) => ({ ...current, driverId: event.target.value }))}
+                required
+              >
+                {drivers.map((driver) => (
+                  <option key={driver.id} value={driver.id}>
+                    {driver.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-8 border bg-background px-2 text-sm"
+                value={form.vehicleId || vehicles[0]?.id || ""}
+                onChange={(event) => setForm((current) => ({ ...current, vehicleId: event.target.value }))}
+                required
+              >
+                {vehicles.map((vehicle) => (
+                  <option key={vehicle.id} value={vehicle.id}>
+                    {vehicle.plate} • {vehicle.description}
                   </option>
                 ))}
               </select>
@@ -186,7 +217,7 @@ export function CollectionsPage() {
                 value={form.notes ?? ""}
                 onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               />
-              <Button type="submit" disabled={!customers.length}>
+              <Button type="submit" disabled={!canSubmit}>
                 Registrar coleta
               </Button>
             </form>
@@ -273,9 +304,6 @@ export function CollectionsPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => void handleAssign(collection.id)}>
-                        Atribuir
-                      </Button>
                       <Button size="sm" variant="outline" onClick={() => void start(collection.id)}>
                         Iniciar
                       </Button>
@@ -293,6 +321,27 @@ export function CollectionsPage() {
                 </article>
               ))}
             </div>
+
+            {totalCount > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+                <p className="text-sm text-muted-foreground">
+                  Página {page} de {Math.max(totalPages, 1)} • {totalCount} coleta(s)
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" disabled={page <= 1 || loading} onClick={() => setPage(page - 1)}>
+                    Anterior
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page >= totalPages || loading}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </section>
