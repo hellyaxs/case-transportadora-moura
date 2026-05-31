@@ -216,7 +216,7 @@ InProgress -> Cancelled
 
 Regras centrais:
 
-- Toda coleta nova inicia como `Open`.
+- Toda coleta nova inicia como `Open` com motorista e veículo já vinculados na criação.
 - `Cancelled` e terminal e deve permanecer registrada para historico.
 - `Collected` tambem encerra o fluxo ativo.
 - Nao avancar para `InProgress` sem motorista e veiculo.
@@ -250,7 +250,9 @@ Rotas REST publicas:
 | Veiculos | `/api/vehicles` |
 | Autenticacao | `/api/auth/login`, `/api/auth/logout`, `/api/auth/me` |
 
-Acoes de fluxo em coletas: `POST .../assignment`, `.../start`, `.../complete`, `.../cancel`, `.../incidents`.
+Acoes de fluxo em coletas: `POST .../start`, `.../complete`, `.../cancel`, `.../incidents`. A atribuição de motorista e veículo ocorre em `POST /api/collections` (campos `driverId`, `vehicleId`). Exclusão física de coletas concluídas: `DELETE /api/collections/{id}` (somente status `Collected`).
+
+Listagem paginada: `GET /api/collections` aceita `page` (base 1) e `pageSize` (default 10, máximo 50) além dos filtros existentes. A resposta retorna envelope `PaginatedCollectionResponseDto` com `items`, metadados de paginação e contadores agregados (`metrics`).
 
 ### Autenticacao JWT (cookie HttpOnly)
 

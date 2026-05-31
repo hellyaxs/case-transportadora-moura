@@ -8,12 +8,12 @@ Definir o fluxo operacional de atribuição, execução, conclusão e cancelamen
 
 ### Requirement: Transições válidas de status
 
-O sistema SHALL controlar transições de status usando enum JSON em inglês: `Open`, `InProgress`, `Collected`, `Cancelled`.
+O sistema SHALL controlar transições de status usando enum JSON em inglês: `Open`, `InProgress`, `Collected`, `Cancelled`. Motorista e veículo SHALL ser vinculados no momento da criação da coleta.
 
-#### Scenario: Coleta aberta recebe atribuição
+#### Scenario: Coleta criada já possui atribuição
 
-- **WHEN** motorista e veículo são vinculados a uma coleta `Open`
-- **THEN** a coleta permanece apta a avançar para `InProgress` ou `Collected` conforme regras existentes
+- **WHEN** uma coleta é criada com `driverId` e `vehicleId` válidos
+- **THEN** a coleta permanece `Open` com atribuição registrada e apta a avançar para `InProgress` conforme regras existentes
 
 #### Scenario: Coleta cancelada é terminal
 
@@ -31,12 +31,31 @@ O sistema SHALL impedir transição para `Collected` sem `driverId` e `vehicleId
 
 ### Requirement: Endpoints de fluxo operacional em inglês
 
-A API SHALL expor ações de fluxo em rotas inglesas: `POST /api/collections/{id}/assignment`, `/start`, `/complete`, `/cancel`.
+A API SHALL expor ações de fluxo em rotas inglesas: `POST /api/collections/{id}/start`, `/complete`, `/cancel`. A atribuição de motorista e veículo SHALL ocorrer exclusivamente na criação via `POST /api/collections`.
 
-#### Scenario: Atribuição via API
+#### Scenario: Início via API
 
-- **WHEN** o cliente chama `POST /api/collections/{id}/assignment` com `driverId` e `vehicleId`
-- **THEN** a coleta é atualizada conforme regra de atribuição existente
+- **WHEN** o cliente chama `POST /api/collections/{id}/start` em coleta `Open` com atribuição completa
+- **THEN** a coleta avança para `InProgress` conforme regra existente
+
+### Requirement: Exclusão de coleta coletada
+
+O sistema SHALL expor `DELETE /api/collections/{id}` para remover fisicamente uma coleta somente quando o status for `Collected`. Ocorrências vinculadas SHALL ser removidas em cascade.
+
+#### Scenario: Exclusão de coleta coletada
+
+- **WHEN** o cliente chama `DELETE /api/collections/{id}` para coleta com status `Collected`
+- **THEN** o registro e suas ocorrências são removidos e a API retorna `204 No Content`
+
+#### Scenario: Exclusão rejeitada para status ativo
+
+- **WHEN** o cliente tenta excluir coleta com status `Open`, `InProgress` ou `Cancelled`
+- **THEN** a API rejeita com erro de negócio indicando que apenas coletas coletadas podem ser excluídas
+
+#### Scenario: Exclusão de coleta inexistente
+
+- **WHEN** o cliente chama `DELETE /api/collections/{id}` para id inexistente
+- **THEN** a API retorna `404 Not Found`
 
 ### Requirement: Histórico mínimo de status
 
