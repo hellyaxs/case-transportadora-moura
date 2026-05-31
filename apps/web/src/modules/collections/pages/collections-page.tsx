@@ -1,4 +1,5 @@
 import type { CollectionPriority, CollectionStatus, CreateCollectionRequest } from "generated-api-types";
+import { Loader2 } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
@@ -24,6 +25,21 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function createEmptyCollectionForm(): CreateCollectionRequest {
+  return {
+    customerId: "",
+    senderName: "",
+    senderAddress: "",
+    recipientName: "",
+    recipientAddress: "",
+    expectedPickupDate: todayIsoDate(),
+    priority: "Normal",
+    notes: "",
+    driverId: "",
+    vehicleId: "",
+  };
+}
+
 export function CollectionsPage() {
   const {
     collections,
@@ -46,42 +62,31 @@ export function CollectionsPage() {
     registerIncident,
     remove,
   } = useCollections();
-  const [form, setForm] = useState<CreateCollectionRequest>({
-    customerId: "",
-    senderName: "",
-    senderAddress: "",
-    recipientName: "",
-    recipientAddress: "",
-    expectedPickupDate: todayIsoDate(),
-    priority: "Normal",
-    notes: "",
-    driverId: "",
-    vehicleId: "",
-  });
+  const [form, setForm] = useState<CreateCollectionRequest>(createEmptyCollectionForm);
+  const [isCreating, setIsCreating] = useState(false);
+
+  function updateForm(update: Partial<CreateCollectionRequest>) {
+    setForm((current: CreateCollectionRequest) => ({ ...current, ...update }));
+  }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    await create({
-      ...form,
-      customerId: form.customerId || customers[0]?.id || "",
-      driverId: form.driverId || drivers[0]?.id || "",
-      vehicleId: form.vehicleId || vehicles[0]?.id || "",
-      notes: form.notes || null,
-    });
+    if (isCreating) return;
 
-    setForm({
-      customerId: customers[0]?.id ?? "",
-      senderName: "",
-      senderAddress: "",
-      recipientName: "",
-      recipientAddress: "",
-      expectedPickupDate: todayIsoDate(),
-      priority: "Normal",
-      notes: "",
-      driverId: drivers[0]?.id ?? "",
-      vehicleId: vehicles[0]?.id ?? "",
-    });
+    setIsCreating(true);
+    try {
+      const created = await create({
+        ...form,
+        notes: form.notes || null,
+      });
+
+      if (created) {
+        setForm(createEmptyCollectionForm());
+      }
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   async function handleCancel(collectionId: string) {
@@ -109,8 +114,9 @@ export function CollectionsPage() {
     customers.length > 0 &&
     drivers.length > 0 &&
     vehicles.length > 0 &&
-    Boolean(form.driverId || drivers[0]?.id) &&
-    Boolean(form.vehicleId || vehicles[0]?.id);
+    Boolean(form.customerId) &&
+    Boolean(form.driverId) &&
+    Boolean(form.vehicleId);
 
   return (
     <main className="container mx-auto grid max-w-7xl gap-4 px-4 py-6">
@@ -144,10 +150,14 @@ export function CollectionsPage() {
             <form className="grid gap-3" onSubmit={handleCreate}>
               <select
                 className="h-8 border bg-background px-2 text-sm"
-                value={form.customerId || customers[0]?.id || ""}
-                onChange={(event) => setForm((current) => ({ ...current, customerId: event.target.value }))}
+                value={form.customerId}
+                onChange={(event) => updateForm({ customerId: event.target.value })}
+                disabled={isCreating}
                 required
               >
+                <option value="" disabled>
+                  Selecione o cliente
+                </option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name}
@@ -156,10 +166,14 @@ export function CollectionsPage() {
               </select>
               <select
                 className="h-8 border bg-background px-2 text-sm"
-                value={form.driverId || drivers[0]?.id || ""}
-                onChange={(event) => setForm((current) => ({ ...current, driverId: event.target.value }))}
+                value={form.driverId}
+                onChange={(event) => updateForm({ driverId: event.target.value })}
+                disabled={isCreating}
                 required
               >
+                <option value="" disabled>
+                  Selecione o motorista
+                </option>
                 {drivers.map((driver) => (
                   <option key={driver.id} value={driver.id}>
                     {driver.name}
@@ -168,10 +182,14 @@ export function CollectionsPage() {
               </select>
               <select
                 className="h-8 border bg-background px-2 text-sm"
-                value={form.vehicleId || vehicles[0]?.id || ""}
-                onChange={(event) => setForm((current) => ({ ...current, vehicleId: event.target.value }))}
+                value={form.vehicleId}
+                onChange={(event) => updateForm({ vehicleId: event.target.value })}
+                disabled={isCreating}
                 required
               >
+                <option value="" disabled>
+                  Selecione o veículo
+                </option>
                 {vehicles.map((vehicle) => (
                   <option key={vehicle.id} value={vehicle.id}>
                     {vehicle.plate} • {vehicle.description}
@@ -181,39 +199,43 @@ export function CollectionsPage() {
               <Input
                 placeholder="Remetente"
                 value={form.senderName ?? ""}
-                onChange={(event) => setForm((current) => ({ ...current, senderName: event.target.value }))}
+                onChange={(event) => updateForm({ senderName: event.target.value })}
+                disabled={isCreating}
                 required
               />
               <Input
                 placeholder="Endereço do remetente"
                 value={form.senderAddress ?? ""}
-                onChange={(event) => setForm((current) => ({ ...current, senderAddress: event.target.value }))}
+                onChange={(event) => updateForm({ senderAddress: event.target.value })}
+                disabled={isCreating}
                 required
               />
               <Input
                 placeholder="Destinatário"
                 value={form.recipientName ?? ""}
-                onChange={(event) => setForm((current) => ({ ...current, recipientName: event.target.value }))}
+                onChange={(event) => updateForm({ recipientName: event.target.value })}
+                disabled={isCreating}
                 required
               />
               <Input
                 placeholder="Endereço do destinatário"
                 value={form.recipientAddress ?? ""}
-                onChange={(event) => setForm((current) => ({ ...current, recipientAddress: event.target.value }))}
+                onChange={(event) => updateForm({ recipientAddress: event.target.value })}
+                disabled={isCreating}
                 required
               />
               <Input
                 type="date"
                 value={form.expectedPickupDate}
-                onChange={(event) => setForm((current) => ({ ...current, expectedPickupDate: event.target.value }))}
+                onChange={(event) => updateForm({ expectedPickupDate: event.target.value })}
+                disabled={isCreating}
                 required
               />
               <select
                 className="h-8 border bg-background px-2 text-sm"
                 value={form.priority ?? "Normal"}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, priority: event.target.value as CollectionPriority }))
-                }
+                onChange={(event) => updateForm({ priority: event.target.value as CollectionPriority })}
+                disabled={isCreating}
               >
                 {prioridadeOptions.map((priority) => (
                   <option key={priority} value={priority}>
@@ -224,10 +246,12 @@ export function CollectionsPage() {
               <Input
                 placeholder="Observações"
                 value={form.notes ?? ""}
-                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                onChange={(event) => updateForm({ notes: event.target.value })}
+                disabled={isCreating}
               />
-              <Button type="submit" disabled={!canSubmit}>
-                Registrar coleta
+              <Button type="submit" disabled={!canSubmit || isCreating} aria-busy={isCreating}>
+                {isCreating ? <Loader2 className="size-3 animate-spin" aria-hidden="true" /> : null}
+                {isCreating ? "Registrando..." : "Registrar coleta"}
               </Button>
             </form>
           </CardContent>

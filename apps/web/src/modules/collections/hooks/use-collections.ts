@@ -94,8 +94,10 @@ export function useCollections() {
     try {
       await operation();
       await loadCollections(page);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao executar operação.");
+      return false;
     }
   }
 
