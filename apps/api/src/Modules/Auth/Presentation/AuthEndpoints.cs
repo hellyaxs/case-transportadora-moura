@@ -93,11 +93,15 @@ public static class AuthEndpoints
 
     private static CookieOptions BuildCookieOptions(JwtOptions options, bool expired = false)
     {
+        var sameSite = Enum.TryParse<SameSiteMode>(options.CookieSameSite, ignoreCase: true, out var configuredSameSite)
+            ? configuredSameSite
+            : SameSiteMode.Lax;
+
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = false,
-            SameSite = SameSiteMode.Lax,
+            Secure = options.CookieSecure,
+            SameSite = sameSite,
             Path = "/",
             Expires = expired
                 ? DateTimeOffset.UtcNow.AddDays(-1)

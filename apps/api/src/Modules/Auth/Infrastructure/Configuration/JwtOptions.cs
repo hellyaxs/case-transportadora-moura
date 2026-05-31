@@ -9,4 +9,6 @@ public sealed class JwtOptions
     public string Audience { get; set; } = "transportadora-moura-web";
     public int ExpirationHours { get; set; } = 8;
     public string CookieName { get; set; } = "auth_token";
+    public bool CookieSecure { get; set; }
+    public string CookieSameSite { get; set; } = "Lax";
 }
