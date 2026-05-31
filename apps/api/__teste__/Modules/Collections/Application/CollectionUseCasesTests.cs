@@ -12,7 +12,7 @@ namespace Api.Test.Modules.Collections.Application;
 public class CollectionUseCasesTests
 {
     [Fact]
-    public async Task CreateAsync_ShouldPersistOpenCollectionWithAssignment()
+    public async Task CreateCollectionUseCase_ShouldPersistOpenCollectionWithAssignment()
     {
         var repository = new FakeCollectionRepository();
         var customerId = Guid.NewGuid();
@@ -21,9 +21,9 @@ public class CollectionUseCasesTests
         repository.Customers[customerId] = new Customer(customerId, "Test Customer");
         repository.Drivers[driverId] = new Driver(driverId, "Ana Souza");
         repository.Vehicles[vehicleId] = new Vehicle(vehicleId, "ABC1D23", "Van");
-        var useCases = CreateUseCases(repository, fixedNow: Now());
+        var useCase = CreateCreateUseCase(repository, fixedNow: Now());
 
-        var result = await useCases.CreateAsync(
+        var result = await useCase.ExecuteAsync(
             new CreateCollectionDto(
                 customerId,
                 "Sender",
@@ -46,12 +46,12 @@ public class CollectionUseCasesTests
     }
 
     [Fact]
-    public async Task CreateAsync_MissingCustomer_ShouldFail()
+    public async Task CreateCollectionUseCase_MissingCustomer_ShouldFail()
     {
-        var useCases = CreateUseCases(new FakeCollectionRepository(), fixedNow: Now());
+        var useCase = CreateCreateUseCase(new FakeCollectionRepository(), fixedNow: Now());
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            useCases.CreateAsync(
+            useCase.ExecuteAsync(
                 new CreateCollectionDto(
                     Guid.NewGuid(),
                     "Sender",
@@ -69,17 +69,17 @@ public class CollectionUseCasesTests
     }
 
     [Fact]
-    public async Task CreateAsync_MissingDriver_ShouldFail()
+    public async Task CreateCollectionUseCase_MissingDriver_ShouldFail()
     {
         var repository = new FakeCollectionRepository();
         var customerId = Guid.NewGuid();
         var vehicleId = Guid.NewGuid();
         repository.Customers[customerId] = new Customer(customerId, "Test Customer");
         repository.Vehicles[vehicleId] = new Vehicle(vehicleId, "ABC1D23", "Van");
-        var useCases = CreateUseCases(repository, fixedNow: Now());
+        var useCase = CreateCreateUseCase(repository, fixedNow: Now());
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            useCases.CreateAsync(
+            useCase.ExecuteAsync(
                 new CreateCollectionDto(
                     customerId,
                     "Sender",
@@ -97,16 +97,16 @@ public class CollectionUseCasesTests
     }
 
     [Fact]
-    public async Task ListAsync_ShouldReturnPaginatedResponseWithMetrics()
+    public async Task ListCollectionsUseCase_ShouldReturnPaginatedResponseWithMetrics()
     {
         var repository = new FakeCollectionRepository();
         var customerId = Guid.NewGuid();
         repository.Customers[customerId] = new Customer(customerId, "Test Customer");
         repository.Collections[Guid.NewGuid()] = CreateSeedCollection(customerId, CollectionStatus.Open, CollectionPriority.High);
         repository.Collections[Guid.NewGuid()] = CreateSeedCollection(customerId, CollectionStatus.InProgress, CollectionPriority.Normal);
-        var useCases = CreateUseCases(repository, fixedNow: Now());
+        var useCase = CreateListUseCase(repository, fixedNow: Now());
 
-        var result = await useCases.ListAsync(null, null, null, null, 1, 1, CancellationToken.None);
+        var result = await useCase.ExecuteAsync(null, null, null, null, 1, 1, CancellationToken.None);
 
         Assert.Single(result.Items);
         Assert.Equal(2, result.TotalCount);
@@ -117,13 +117,13 @@ public class CollectionUseCasesTests
     }
 
     [Fact]
-    public async Task RegisterIncidentAsync_ShouldPersistResponsibleUser()
+    public async Task RegisterCollectionIncidentUseCase_ShouldPersistResponsibleUser()
     {
         var repository = new FakeCollectionRepository();
         var collection = SeedCollection(repository);
-        var useCases = CreateUseCases(repository, fixedNow: Now(), currentUser: new FakeCurrentUser("operator.test"));
+        var useCase = CreateRegisterIncidentUseCase(repository, fixedNow: Now(), currentUser: new FakeCurrentUser("operator.test"));
 
-        var result = await useCases.RegisterIncidentAsync(
+        var result = await useCase.ExecuteAsync(
             collection.Id,
             "Sender absent.",
             CancellationToken.None);
@@ -134,12 +134,12 @@ public class CollectionUseCasesTests
     }
 
     [Fact]
-    public async Task ListAsync_InvalidDateRange_ShouldFail()
+    public async Task ListCollectionsUseCase_InvalidDateRange_ShouldFail()
     {
-        var useCases = CreateUseCases(new FakeCollectionRepository(), fixedNow: Now());
+        var useCase = CreateListUseCase(new FakeCollectionRepository(), fixedNow: Now());
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            useCases.ListAsync(
+            useCase.ExecuteAsync(
                 null,
                 null,
                 new DateOnly(2026, 5, 10),
@@ -152,65 +152,88 @@ public class CollectionUseCasesTests
     }
 
     [Fact]
-    public async Task RegisterIncidentAsync_WithoutAuthenticatedUser_ShouldFail()
+    public async Task RegisterCollectionIncidentUseCase_WithoutAuthenticatedUser_ShouldFail()
     {
         var repository = new FakeCollectionRepository();
         var collection = SeedCollection(repository);
-        var useCases = CreateUseCases(repository, fixedNow: Now(), currentUser: new FakeCurrentUser(""));
+        var useCase = CreateRegisterIncidentUseCase(repository, fixedNow: Now(), currentUser: new FakeCurrentUser(""));
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            useCases.RegisterIncidentAsync(collection.Id, "Delay on route.", CancellationToken.None));
+            useCase.ExecuteAsync(collection.Id, "Delay on route.", CancellationToken.None));
 
         Assert.Equal("authenticated_user_required", exception.Code);
     }
 
     [Fact]
-    public async Task DeleteAsync_CollectedCollection_ShouldRemoveRecord()
+    public async Task DeleteCollectionUseCase_CollectedCollection_ShouldRemoveRecord()
     {
         var repository = new FakeCollectionRepository();
         var customerId = Guid.NewGuid();
         repository.Customers[customerId] = new Customer(customerId, "Test Customer");
         var collection = CreateSeedCollection(customerId, CollectionStatus.Collected, CollectionPriority.Normal);
         repository.Collections[collection.Id] = collection;
-        var useCases = CreateUseCases(repository, fixedNow: Now());
+        var useCase = CreateDeleteUseCase(repository);
 
-        await useCases.DeleteAsync(collection.Id, CancellationToken.None);
+        await useCase.ExecuteAsync(collection.Id, CancellationToken.None);
 
         Assert.Empty(repository.Collections);
     }
 
     [Fact]
-    public async Task DeleteAsync_OpenCollection_ShouldFail()
+    public async Task DeleteCollectionUseCase_OpenCollection_ShouldFail()
     {
         var repository = new FakeCollectionRepository();
         var collection = SeedCollection(repository);
-        var useCases = CreateUseCases(repository, fixedNow: Now());
+        var useCase = CreateDeleteUseCase(repository);
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            useCases.DeleteAsync(collection.Id, CancellationToken.None));
+            useCase.ExecuteAsync(collection.Id, CancellationToken.None));
 
         Assert.Equal("collection_not_deletable", exception.Code);
         Assert.Single(repository.Collections);
     }
 
     [Fact]
-    public async Task DeleteAsync_MissingCollection_ShouldFail()
+    public async Task DeleteCollectionUseCase_MissingCollection_ShouldFail()
     {
-        var useCases = CreateUseCases(new FakeCollectionRepository(), fixedNow: Now());
+        var useCase = CreateDeleteUseCase(new FakeCollectionRepository());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            useCases.DeleteAsync(Guid.NewGuid(), CancellationToken.None));
+            useCase.ExecuteAsync(Guid.NewGuid(), CancellationToken.None));
     }
 
-    private static CollectionUseCases CreateUseCases(FakeCollectionRepository repository, DateTimeOffset fixedNow, ICurrentUser? currentUser = null)
+    private static CreateCollectionUseCase CreateCreateUseCase(FakeCollectionRepository repository, DateTimeOffset fixedNow)
     {
-        return new CollectionUseCases(
+        return new CreateCollectionUseCase(
             repository,
             new FakeCollectionNumberGenerator("COL-0001"),
-            new FakeClock(fixedNow, new DateOnly(2026, 5, 28)),
-            currentUser ?? new FakeCurrentUser("operator.test"),
-            NullLogger<CollectionUseCases>.Instance);
+            CreateClock(fixedNow),
+            NullLogger<CreateCollectionUseCase>.Instance);
     }
+
+    private static ListCollectionsUseCase CreateListUseCase(FakeCollectionRepository repository, DateTimeOffset fixedNow)
+    {
+        return new ListCollectionsUseCase(repository, CreateClock(fixedNow));
+    }
+
+    private static RegisterCollectionIncidentUseCase CreateRegisterIncidentUseCase(
+        FakeCollectionRepository repository,
+        DateTimeOffset fixedNow,
+        ICurrentUser currentUser)
+    {
+        return new RegisterCollectionIncidentUseCase(
+            repository,
+            CreateClock(fixedNow),
+            currentUser,
+            NullLogger<RegisterCollectionIncidentUseCase>.Instance);
+    }
+
+    private static DeleteCollectionUseCase CreateDeleteUseCase(FakeCollectionRepository repository)
+    {
+        return new DeleteCollectionUseCase(repository, NullLogger<DeleteCollectionUseCase>.Instance);
+    }
+
+    private static FakeClock CreateClock(DateTimeOffset fixedNow) => new(fixedNow, new DateOnly(2026, 5, 28));
 
     private static Collection SeedCollection(FakeCollectionRepository repository)
     {

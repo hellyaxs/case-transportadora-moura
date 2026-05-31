@@ -133,6 +133,8 @@ Responsabilidades:
 - Contratos como repositorios, relogio e geradores em `Contracts`.
 - Coordenacao de fluxo entre dominio e persistencia.
 
+No modulo de coletas, `UseCases` segue uma classe por acao operacional, como `CreateCollectionUseCase`, `ListCollectionsUseCase`, `StartCollectionUseCase` e `RegisterCollectionIncidentUseCase`. Compartilhamentos devem ficar restritos a helpers mecanicos de Application, como mapeamento de dominio para DTOs, sem recriar uma fachada agregadora.
+
 ### Infrastructure
 
 `Infrastructure` contem detalhes tecnicos.

@@ -103,7 +103,7 @@ public static class CollectionsEndpoints
     }
 
     private static async Task<IResult> ListCollectionsAsync(
-        CollectionUseCases useCases,
+        ListCollectionsUseCase useCase,
         CollectionStatus? status,
         Guid? customerId,
         DateOnly? startDate,
@@ -113,63 +113,63 @@ public static class CollectionsEndpoints
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.ListAsync(status, customerId, startDate, endDate, page, pageSize, cancellationToken)));
+            Results.Ok(await useCase.ExecuteAsync(status, customerId, startDate, endDate, page, pageSize, cancellationToken)));
     }
 
     private static async Task<IResult> GetCollectionAsync(
         Guid id,
-        CollectionUseCases useCases,
+        GetCollectionDetailsUseCase useCase,
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.GetDetailsAsync(id, cancellationToken)));
+            Results.Ok(await useCase.ExecuteAsync(id, cancellationToken)));
     }
 
     private static async Task<IResult> CreateCollectionAsync(
         CreateCollectionRequest request,
-        CollectionUseCases useCases,
+        CreateCollectionUseCase useCase,
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
         {
-            var collection = await useCases.CreateAsync(request.ToDto(), cancellationToken);
+            var collection = await useCase.ExecuteAsync(request.ToDto(), cancellationToken);
             return Results.Created($"/api/collections/{collection.Id}", collection);
         });
     }
 
     private static async Task<IResult> StartCollectionAsync(
         Guid id,
-        CollectionUseCases useCases,
+        StartCollectionUseCase useCase,
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.MarkInProgressAsync(id, cancellationToken)));
+            Results.Ok(await useCase.ExecuteAsync(id, cancellationToken)));
     }
 
     private static async Task<IResult> CompleteCollectionAsync(
         Guid id,
-        CollectionUseCases useCases,
+        CompleteCollectionUseCase useCase,
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.CompleteAsync(id, cancellationToken)));
+            Results.Ok(await useCase.ExecuteAsync(id, cancellationToken)));
     }
 
     private static async Task<IResult> CancelCollectionAsync(
         Guid id,
         CancelCollectionRequest request,
-        CollectionUseCases useCases,
+        CancelCollectionUseCase useCase,
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.CancelAsync(id, request.Reason, cancellationToken)));
+            Results.Ok(await useCase.ExecuteAsync(id, request.Reason, cancellationToken)));
     }
 
     private static async Task<IResult> RegisterIncidentAsync(
         Guid id,
         RegisterIncidentRequest request,
         IValidator<RegisterIncidentRequest> validator,
-        CollectionUseCases useCases,
+        RegisterCollectionIncidentUseCase useCase,
         CancellationToken cancellationToken)
     {
         var validationError = await EndpointValidation.ValidateAsync(request, validator, cancellationToken);
@@ -179,17 +179,17 @@ public static class CollectionsEndpoints
         }
 
         return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.RegisterIncidentAsync(id, request.Description, cancellationToken)));
+            Results.Ok(await useCase.ExecuteAsync(id, request.Description, cancellationToken)));
     }
 
     private static async Task<IResult> DeleteCollectionAsync(
         Guid id,
-        CollectionUseCases useCases,
+        DeleteCollectionUseCase useCase,
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
         {
-            await useCases.DeleteAsync(id, cancellationToken);
+            await useCase.ExecuteAsync(id, cancellationToken);
             return Results.NoContent();
         });
     }

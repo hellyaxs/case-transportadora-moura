@@ -18,7 +18,14 @@ public static class CollectionsModule
         services.AddDbContext<TransportadoraDbContext>(options =>
             options.UseNpgsql(PostgresConnectionStringFactory.Create(configuration)));
         services.AddScoped<ICollectionRepository, EfCollectionRepository>();
-        services.AddScoped<CollectionUseCases>();
+        services.AddScoped<CreateCollectionUseCase>();
+        services.AddScoped<ListCollectionsUseCase>();
+        services.AddScoped<GetCollectionDetailsUseCase>();
+        services.AddScoped<StartCollectionUseCase>();
+        services.AddScoped<CompleteCollectionUseCase>();
+        services.AddScoped<CancelCollectionUseCase>();
+        services.AddScoped<RegisterCollectionIncidentUseCase>();
+        services.AddScoped<DeleteCollectionUseCase>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<ICollectionNumberGenerator, CollectionNumberGenerator>();
         services.AddValidatorsFromAssemblyContaining<RegisterIncidentRequestValidator>();
