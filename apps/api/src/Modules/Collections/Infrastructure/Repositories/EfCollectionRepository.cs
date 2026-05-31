@@ -21,40 +21,51 @@ public sealed class EfCollectionRepository(TransportadoraDbContext dbContext) : 
             .FirstOrDefaultAsync(collection => collection.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Collection>> ListAsync(
+    public Task<int> CountAsync(
         CollectionStatus? status,
         Guid? customerId,
         DateOnly? startDate,
         DateOnly? endDate,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.Collections.AsQueryable();
+        return ApplyFilters(status, customerId, startDate, endDate).CountAsync(cancellationToken);
+    }
 
-        if (status.HasValue)
-        {
-            query = query.Where(collection => collection.Status == status);
-        }
-
-        if (customerId.HasValue)
-        {
-            query = query.Where(collection => collection.CustomerId == customerId);
-        }
-
-        if (startDate.HasValue)
-        {
-            query = query.Where(collection => collection.ExpectedPickupDate >= startDate);
-        }
-
-        if (endDate.HasValue)
-        {
-            query = query.Where(collection => collection.ExpectedPickupDate <= endDate);
-        }
-
-        return await query
-            .OrderBy(collection => collection.ExpectedPickupDate)
-            .ThenBy(collection => collection.Priority == CollectionPriority.High ? 0 : 1)
-            .ThenBy(collection => collection.Number)
+    public async Task<IReadOnlyList<Collection>> ListPagedAsync(
+        CollectionStatus? status,
+        Guid? customerId,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        return await ApplyFilters(status, customerId, startDate, endDate)
+            .OrderByDescending(collection => collection.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<CollectionListMetricsDto> GetListMetricsAsync(
+        CollectionStatus? status,
+        Guid? customerId,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        DateOnly today,
+        CancellationToken cancellationToken)
+    {
+        var query = ApplyFilters(status, customerId, startDate, endDate);
+
+        return new CollectionListMetricsDto(
+            await query.CountAsync(collection => collection.Status == CollectionStatus.Open, cancellationToken),
+            await query.CountAsync(collection => collection.Status == CollectionStatus.InProgress, cancellationToken),
+            await query.CountAsync(
+                collection =>
+                    (collection.Status == CollectionStatus.Open || collection.Status == CollectionStatus.InProgress)
+                    && collection.ExpectedPickupDate < today,
+                cancellationToken),
+            await query.CountAsync(collection => collection.Priority == CollectionPriority.High, cancellationToken));
     }
 
     public async Task<Customer?> GetCustomerAsync(Guid id, CancellationToken cancellationToken)
@@ -99,5 +110,36 @@ public sealed class EfCollectionRepository(TransportadoraDbContext dbContext) : 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private IQueryable<Collection> ApplyFilters(
+        CollectionStatus? status,
+        Guid? customerId,
+        DateOnly? startDate,
+        DateOnly? endDate)
+    {
+        var query = dbContext.Collections.AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(collection => collection.Status == status);
+        }
+
+        if (customerId.HasValue)
+        {
+            query = query.Where(collection => collection.CustomerId == customerId);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(collection => collection.ExpectedPickupDate >= startDate);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(collection => collection.ExpectedPickupDate <= endDate);
+        }
+
+        return query;
     }
 }

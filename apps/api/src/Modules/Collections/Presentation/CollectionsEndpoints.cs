@@ -20,8 +20,8 @@ public static class CollectionsEndpoints
         group.MapGet("/", ListCollectionsAsync)
             .WithName("ListCollections")
             .WithSummary("List operational collections")
-            .WithDescription("Lists collections with filters by status, customer, and date range. Returns priority and overdue flags for operational tracking.")
-            .Produces<IReadOnlyList<CollectionSummaryDto>>();
+            .WithDescription("Lists collections with filters by status, customer, and date range. Supports remote pagination and returns aggregated metrics.")
+            .Produces<PaginatedCollectionResponseDto>();
 
         group.MapGet("/{id:guid}", GetCollectionAsync)
             .WithName("GetCollection")
@@ -33,16 +33,9 @@ public static class CollectionsEndpoints
         group.MapPost("/", CreateCollectionAsync)
             .WithName("CreateCollection")
             .WithSummary("Create a collection request")
-            .WithDescription("Creates a collection with Open status, a unique number, and Normal priority when priority is not provided.")
+            .WithDescription("Creates a collection with Open status, a unique number, driver and vehicle assignment, and Normal priority when priority is not provided.")
             .Produces<CollectionDetailsDto>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest);
-
-        group.MapPost("/{id:guid}/assignment", AssignCollectionAsync)
-            .WithName("AssignCollection")
-            .WithSummary("Assign driver and vehicle")
-            .WithDescription("Links a driver and vehicle to an active collection. Cancelled collections cannot be assigned.")
-            .Produces<CollectionDetailsDto>()
-            .ProducesProblem(StatusCodes.Status409Conflict);
 
         group.MapPost("/{id:guid}/start", StartCollectionAsync)
             .WithName("StartCollection")
@@ -107,10 +100,12 @@ public static class CollectionsEndpoints
         Guid? customerId,
         DateOnly? startDate,
         DateOnly? endDate,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.ListAsync(status, customerId, startDate, endDate, cancellationToken)));
+            Results.Ok(await useCases.ListAsync(status, customerId, startDate, endDate, page, pageSize, cancellationToken)));
     }
 
     private static async Task<IResult> GetCollectionAsync(
@@ -132,16 +127,6 @@ public static class CollectionsEndpoints
             var collection = await useCases.CreateAsync(request.ToDto(), cancellationToken);
             return Results.Created($"/api/collections/{collection.Id}", collection);
         });
-    }
-
-    private static async Task<IResult> AssignCollectionAsync(
-        Guid id,
-        AssignCollectionRequest request,
-        CollectionUseCases useCases,
-        CancellationToken cancellationToken)
-    {
-        return await ExecuteAsync(async () =>
-            Results.Ok(await useCases.AssignAsync(id, request.DriverId, request.VehicleId, cancellationToken)));
     }
 
     private static async Task<IResult> StartCollectionAsync(

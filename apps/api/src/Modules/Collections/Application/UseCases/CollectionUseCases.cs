@@ -19,6 +19,10 @@ public sealed class CollectionUseCases(
     {
         var customer = await repository.GetCustomerAsync(input.CustomerId, cancellationToken)
             ?? throw new BusinessRuleException("Customer was not found.", "customer_not_found");
+        var driver = await repository.GetDriverAsync(input.DriverId, cancellationToken)
+            ?? throw new BusinessRuleException("Driver was not found.", "driver_not_found");
+        var vehicle = await repository.GetVehicleAsync(input.VehicleId, cancellationToken)
+            ?? throw new BusinessRuleException("Vehicle was not found.", "vehicle_not_found");
 
         var collectionNumber = numberGenerator.Generate();
         var collection = new Collection(
@@ -35,21 +39,25 @@ public sealed class CollectionUseCases(
             input.Notes,
             clock.Now);
 
+        collection.AssignDriverAndVehicle(driver.Id, driver.Name, vehicle.Id, vehicle.Plate, clock.Now);
+
         await repository.AddAsync(collection, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Collection {Number} ({Id}) created for customer {CustomerId}",
-            collectionNumber, collection.Id, customer.Id);
+            "Collection {Number} ({Id}) created for customer {CustomerId} with driver {DriverId} and vehicle {VehicleId}",
+            collectionNumber, collection.Id, customer.Id, driver.Id, vehicle.Id);
 
         return ToDetails(collection, clock.Today);
     }
 
-    public async Task<IReadOnlyList<CollectionSummaryDto>> ListAsync(
+    public async Task<PaginatedCollectionResponseDto> ListAsync(
         CollectionStatus? status,
         Guid? customerId,
         DateOnly? startDate,
         DateOnly? endDate,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         if (startDate.HasValue && endDate.HasValue && startDate > endDate)
@@ -57,31 +65,46 @@ public sealed class CollectionUseCases(
             throw new BusinessRuleException("Start date cannot be greater than end date.", "invalid_date_range");
         }
 
-        var collections = await repository.ListAsync(status, customerId, startDate, endDate, cancellationToken);
-        return collections.Select(collection => ToSummary(collection, clock.Today)).ToList();
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedPageSize = pageSize switch
+        {
+            < 1 => 10,
+            > 50 => 50,
+            _ => pageSize,
+        };
+
+        var totalCount = await repository.CountAsync(status, customerId, startDate, endDate, cancellationToken);
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)normalizedPageSize);
+        var effectivePage = totalPages == 0 ? 1 : Math.Min(normalizedPage, totalPages);
+
+        var collections = await repository.ListPagedAsync(
+            status,
+            customerId,
+            startDate,
+            endDate,
+            effectivePage,
+            normalizedPageSize,
+            cancellationToken);
+        var metrics = await repository.GetListMetricsAsync(
+            status,
+            customerId,
+            startDate,
+            endDate,
+            clock.Today,
+            cancellationToken);
+
+        return new PaginatedCollectionResponseDto(
+            collections.Select(collection => ToSummary(collection, clock.Today)).ToList(),
+            effectivePage,
+            normalizedPageSize,
+            totalCount,
+            totalPages,
+            metrics);
     }
 
     public async Task<CollectionDetailsDto> GetDetailsAsync(Guid id, CancellationToken cancellationToken)
     {
         var collection = await GetCollectionAsync(id, cancellationToken);
-        return ToDetails(collection, clock.Today);
-    }
-
-    public async Task<CollectionDetailsDto> AssignAsync(Guid id, Guid driverId, Guid vehicleId, CancellationToken cancellationToken)
-    {
-        var collection = await GetCollectionAsync(id, cancellationToken);
-        var driver = await repository.GetDriverAsync(driverId, cancellationToken)
-            ?? throw new BusinessRuleException("Driver was not found.", "driver_not_found");
-        var vehicle = await repository.GetVehicleAsync(vehicleId, cancellationToken)
-            ?? throw new BusinessRuleException("Vehicle was not found.", "vehicle_not_found");
-
-        collection.AssignDriverAndVehicle(driver.Id, driver.Name, vehicle.Id, vehicle.Plate, clock.Now);
-        await repository.SaveChangesAsync(cancellationToken);
-
-        logger.LogInformation(
-            "Collection {Number} ({Id}) assigned to driver {DriverName} ({DriverId}) with vehicle {VehiclePlate} ({VehicleId})",
-            collection.Number, collection.Id, driver.Name, driver.Id, vehicle.Plate, vehicle.Id);
-
         return ToDetails(collection, clock.Today);
     }
 

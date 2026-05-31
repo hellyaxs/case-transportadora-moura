@@ -10,7 +10,23 @@ public sealed record CreateCollectionDto(
     string RecipientAddress,
     DateOnly ExpectedPickupDate,
     CollectionPriority? Priority,
-    string? Notes);
+    string? Notes,
+    Guid DriverId,
+    Guid VehicleId);
+
+public sealed record CollectionListMetricsDto(
+    int OpenCount,
+    int InProgressCount,
+    int OverdueCount,
+    int HighPriorityCount);
+
+public sealed record PaginatedCollectionResponseDto(
+    IReadOnlyList<CollectionSummaryDto> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    int TotalPages,
+    CollectionListMetricsDto Metrics);
 
 public sealed record CollectionSummaryDto(
     Guid Id,

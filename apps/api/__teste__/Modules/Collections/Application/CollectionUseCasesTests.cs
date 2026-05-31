@@ -12,11 +12,15 @@ namespace Api.Test.Modules.Collections.Application;
 public class CollectionUseCasesTests
 {
     [Fact]
-    public async Task CreateAsync_ShouldPersistOpenCollection()
+    public async Task CreateAsync_ShouldPersistOpenCollectionWithAssignment()
     {
         var repository = new FakeCollectionRepository();
         var customerId = Guid.NewGuid();
+        var driverId = Guid.NewGuid();
+        var vehicleId = Guid.NewGuid();
         repository.Customers[customerId] = new Customer(customerId, "Test Customer");
+        repository.Drivers[driverId] = new Driver(driverId, "Ana Souza");
+        repository.Vehicles[vehicleId] = new Vehicle(vehicleId, "ABC1D23", "Van");
         var useCases = CreateUseCases(repository, fixedNow: Now());
 
         var result = await useCases.CreateAsync(
@@ -28,11 +32,16 @@ public class CollectionUseCasesTests
                 "Street B, 2",
                 new DateOnly(2026, 5, 28),
                 CollectionPriority.High,
-                "Notes"),
+                "Notes",
+                driverId,
+                vehicleId),
             CancellationToken.None);
 
         Assert.Equal(CollectionStatus.Open, result.Status);
         Assert.Equal("COL-0001", result.Number);
+        Assert.Equal("Ana Souza", result.DriverName);
+        Assert.Equal("ABC1D23", result.VehiclePlate);
+        Assert.NotNull(result.AssignedAt);
         Assert.Single(repository.Collections);
     }
 
@@ -51,27 +60,60 @@ public class CollectionUseCasesTests
                     "Street B, 2",
                     new DateOnly(2026, 5, 28),
                     null,
-                    null),
+                    null,
+                    Guid.NewGuid(),
+                    Guid.NewGuid()),
                 CancellationToken.None));
 
         Assert.Equal("customer_not_found", exception.Code);
     }
 
     [Fact]
-    public async Task AssignAsync_ShouldLinkDriverAndVehicle()
+    public async Task CreateAsync_MissingDriver_ShouldFail()
     {
         var repository = new FakeCollectionRepository();
-        var collection = SeedCollection(repository);
-        var driverId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
         var vehicleId = Guid.NewGuid();
-        repository.Drivers[driverId] = new Driver(driverId, "Ana Souza");
+        repository.Customers[customerId] = new Customer(customerId, "Test Customer");
         repository.Vehicles[vehicleId] = new Vehicle(vehicleId, "ABC1D23", "Van");
         var useCases = CreateUseCases(repository, fixedNow: Now());
 
-        var result = await useCases.AssignAsync(collection.Id, driverId, vehicleId, CancellationToken.None);
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            useCases.CreateAsync(
+                new CreateCollectionDto(
+                    customerId,
+                    "Sender",
+                    "Street A, 1",
+                    "Recipient",
+                    "Street B, 2",
+                    new DateOnly(2026, 5, 28),
+                    null,
+                    null,
+                    Guid.NewGuid(),
+                    vehicleId),
+                CancellationToken.None));
 
-        Assert.Equal("Ana Souza", result.DriverName);
-        Assert.Equal("ABC1D23", result.VehiclePlate);
+        Assert.Equal("driver_not_found", exception.Code);
+    }
+
+    [Fact]
+    public async Task ListAsync_ShouldReturnPaginatedResponseWithMetrics()
+    {
+        var repository = new FakeCollectionRepository();
+        var customerId = Guid.NewGuid();
+        repository.Customers[customerId] = new Customer(customerId, "Test Customer");
+        repository.Collections[Guid.NewGuid()] = CreateSeedCollection(customerId, CollectionStatus.Open, CollectionPriority.High);
+        repository.Collections[Guid.NewGuid()] = CreateSeedCollection(customerId, CollectionStatus.InProgress, CollectionPriority.Normal);
+        var useCases = CreateUseCases(repository, fixedNow: Now());
+
+        var result = await useCases.ListAsync(null, null, null, null, 1, 1, CancellationToken.None);
+
+        Assert.Single(result.Items);
+        Assert.Equal(2, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+        Assert.Equal(1, result.Metrics.OpenCount);
+        Assert.Equal(1, result.Metrics.InProgressCount);
+        Assert.Equal(1, result.Metrics.HighPriorityCount);
     }
 
     [Fact]
@@ -92,18 +134,6 @@ public class CollectionUseCasesTests
     }
 
     [Fact]
-    public async Task CancelAsync_CancelledCollection_ShouldNotAllowAssign()
-    {
-        var repository = new FakeCollectionRepository();
-        var collection = SeedCollection(repository);
-        var useCases = CreateUseCases(repository, fixedNow: Now());
-        await useCases.CancelAsync(collection.Id, "Unavailable", CancellationToken.None);
-
-        await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            useCases.AssignAsync(collection.Id, Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None));
-    }
-
-    [Fact]
     public async Task ListAsync_InvalidDateRange_ShouldFail()
     {
         var useCases = CreateUseCases(new FakeCollectionRepository(), fixedNow: Now());
@@ -114,6 +144,8 @@ public class CollectionUseCasesTests
                 null,
                 new DateOnly(2026, 5, 10),
                 new DateOnly(2026, 5, 1),
+                1,
+                10,
                 CancellationToken.None));
 
         Assert.Equal("invalid_date_range", exception.Code);
@@ -146,9 +178,16 @@ public class CollectionUseCasesTests
     {
         var customerId = Guid.NewGuid();
         repository.Customers[customerId] = new Customer(customerId, "Test Customer");
+        var collection = CreateSeedCollection(customerId, CollectionStatus.Open, CollectionPriority.Normal);
+        repository.Collections[collection.Id] = collection;
+        return collection;
+    }
+
+    private static Collection CreateSeedCollection(Guid customerId, CollectionStatus status, CollectionPriority priority)
+    {
         var collection = new Collection(
             Guid.NewGuid(),
-            "COL-TEST",
+            $"COL-{Guid.NewGuid():N}"[..12],
             customerId,
             "Test Customer",
             "Sender",
@@ -156,10 +195,20 @@ public class CollectionUseCasesTests
             "Recipient",
             "Street B",
             new DateOnly(2026, 5, 28),
-            CollectionPriority.Normal,
+            priority,
             null,
             Now());
-        repository.Collections[collection.Id] = collection;
+
+        if (status is CollectionStatus.InProgress or CollectionStatus.Collected)
+        {
+            collection.AssignDriverAndVehicle(Guid.NewGuid(), "Driver", Guid.NewGuid(), "ABC1D23", Now());
+        }
+
+        if (status == CollectionStatus.InProgress)
+        {
+            collection.MarkInProgress(Now());
+        }
+
         return collection;
     }
 
@@ -181,13 +230,48 @@ public class CollectionUseCasesTests
         public Task<Collection?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Collections.GetValueOrDefault(id));
 
-        public Task<IReadOnlyList<Collection>> ListAsync(
+        public Task<int> CountAsync(
             CollectionStatus? status,
             Guid? customerId,
             DateOnly? startDate,
             DateOnly? endDate,
             CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<Collection>>(Collections.Values.ToList());
+            Task.FromResult(ApplyFilters(status, customerId, startDate, endDate).Count);
+
+        public Task<IReadOnlyList<Collection>> ListPagedAsync(
+            CollectionStatus? status,
+            Guid? customerId,
+            DateOnly? startDate,
+            DateOnly? endDate,
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken)
+        {
+            var items = ApplyFilters(status, customerId, startDate, endDate)
+                .OrderByDescending(collection => collection.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return Task.FromResult<IReadOnlyList<Collection>>(items);
+        }
+
+        public Task<CollectionListMetricsDto> GetListMetricsAsync(
+            CollectionStatus? status,
+            Guid? customerId,
+            DateOnly? startDate,
+            DateOnly? endDate,
+            DateOnly today,
+            CancellationToken cancellationToken)
+        {
+            var query = ApplyFilters(status, customerId, startDate, endDate);
+
+            return Task.FromResult(new CollectionListMetricsDto(
+                query.Count(collection => collection.Status == CollectionStatus.Open),
+                query.Count(collection => collection.Status == CollectionStatus.InProgress),
+                query.Count(collection => collection.IsOverdue(today)),
+                query.Count(collection => collection.Priority == CollectionPriority.High)));
+        }
 
         public Task<Customer?> GetCustomerAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Customers.GetValueOrDefault(id));
@@ -209,6 +293,37 @@ public class CollectionUseCasesTests
                 Vehicles.Values.Select(v => new VehicleOptionDto(v.Id, v.Plate, v.Description)).ToList());
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        private List<Collection> ApplyFilters(
+            CollectionStatus? status,
+            Guid? customerId,
+            DateOnly? startDate,
+            DateOnly? endDate)
+        {
+            IEnumerable<Collection> query = Collections.Values;
+
+            if (status.HasValue)
+            {
+                query = query.Where(collection => collection.Status == status);
+            }
+
+            if (customerId.HasValue)
+            {
+                query = query.Where(collection => collection.CustomerId == customerId);
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(collection => collection.ExpectedPickupDate >= startDate);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(collection => collection.ExpectedPickupDate <= endDate);
+            }
+
+            return query.ToList();
+        }
     }
 
     private sealed class FakeClock(DateTimeOffset now, DateOnly today) : IClock

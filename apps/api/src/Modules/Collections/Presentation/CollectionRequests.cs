@@ -11,7 +11,9 @@ public sealed record CreateCollectionRequest(
     string RecipientAddress,
     DateOnly ExpectedPickupDate,
     CollectionPriority? Priority,
-    string? Notes)
+    string? Notes,
+    Guid DriverId,
+    Guid VehicleId)
 {
     public CreateCollectionDto ToDto()
     {
@@ -23,11 +25,11 @@ public sealed record CreateCollectionRequest(
             RecipientAddress,
             ExpectedPickupDate,
             Priority,
-            Notes);
+            Notes,
+            DriverId,
+            VehicleId);
     }
 }
-
-public sealed record AssignCollectionRequest(Guid DriverId, Guid VehicleId);
 
 public sealed record CancelCollectionRequest(string? Reason);
 
